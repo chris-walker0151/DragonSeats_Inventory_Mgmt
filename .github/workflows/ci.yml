@@ -1,0 +1,84 @@
+name: CI
+
+# This workflow runs automated checks on every push to main and every pull request to main
+# It ensures code quality through linting, type-checking, and build verification
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # Main CI job that runs code quality checks and builds the application
+  ci:
+    name: Lint, Type-check, and Build
+    runs-on: ubuntu-latest
+
+    steps:
+      # Get the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up Node.js version 22 (matches the project's development environment)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # Install all dependencies from package-lock.json (clean install for reproducibility)
+      - name: Install dependencies
+        run: npm ci
+
+      # Generate Prisma Client - this is required for TypeScript to understand database types
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      # Run ESLint to check for code quality issues and potential bugs
+      - name: Run linter
+        run: npm run lint
+
+      # Run TypeScript compiler in check mode (no output files, just validation)
+      # This catches type errors that could cause runtime issues
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      # Build the Next.js application to ensure it compiles successfully
+      # This step would fail if there are any build-time errors
+      - name: Build application
+        run: npm run build
+
+  # Database migration job - only runs when code is pushed to main (not on PRs)
+  # This automatically applies any new database migrations to production
+  migrate:
+    name: Deploy Database Migrations
+    needs: ci
+    runs-on: ubuntu-latest
+    # Only run migrations on direct pushes to main, skip for pull requests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      # Get the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up Node.js version 22
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # Install dependencies needed for Prisma CLI
+      - name: Install dependencies
+        run: npm ci
+
+      # Apply all pending migrations to the production database
+      # This uses the DATABASE_URL secret configured in GitHub repository settings
+      - name: Deploy migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

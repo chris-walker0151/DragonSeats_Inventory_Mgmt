@@ -1,0 +1,27 @@
+version: 1
+frontend:
+  phases:
+    # Commands to run before building the application
+    preBuild:
+      commands:
+        # Install all dependencies from package-lock.json for consistent builds
+        - npm ci
+        # Generate Prisma Client so TypeScript can use database types during build
+        - npx prisma generate
+    # Commands to build the Next.js application for production
+    build:
+      commands:
+        - npm run build
+  # Tell AWS Amplify which files to deploy
+  artifacts:
+    # The .next directory contains the built Next.js application
+    baseDirectory: .next
+    files:
+      - '**/*'
+  # Cache these directories between builds to speed up deployment
+  cache:
+    paths:
+      # Cached npm packages so we don't re-download everything each time
+      - node_modules/**/*
+      # Next.js build cache for faster incremental builds
+      - .next/cache/**/*

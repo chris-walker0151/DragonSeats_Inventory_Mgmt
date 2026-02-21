@@ -1,0 +1,216 @@
+generator client {
+    provider = "prisma-client"
+    output   = "../src/generated/prisma"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum ProductCategory {
+    bench
+    heater
+    ac_unit
+    compressor
+    cooling_tower
+    shader
+    hot_box
+}
+
+enum LifecycleStatus {
+    ordered
+    in_warehouse_available
+    in_warehouse_reserved
+    deployed_customer
+    retired
+}
+
+enum WarehouseLocation {
+    cleveland_warehouse
+    kansas_city_warehouse
+    jacksonville_warehouse
+    deployed_customer
+}
+
+enum LeagueType {
+    nfl
+    ncaa_fbs
+    ncaa_fcs
+    other
+}
+
+enum ContractType {
+    seasonal_rental
+    multi_year_lease
+}
+
+enum CustomerStatus {
+    active
+    inactive
+    prospect
+}
+
+enum BrandingStatus {
+    unbranded
+    branded
+}
+
+enum BrandingType {
+    team
+    one_off_event
+    other
+}
+
+enum TransferStatus {
+    initiated
+    in_transit
+    received
+    cancelled
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model SkuMaster {
+    id                 String          @id @default(uuid())
+    sku                String          @unique
+    productCategory    ProductCategory @map("product_category")
+    productDescription String          @map("product_description")
+    isSerialized       Boolean         @default(true) @map("is_serialized")
+    notes              String?
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    serializedAssets SerializedAsset[]
+
+    @@map("sku_master")
+}
+
+model Customer {
+    id                    String         @id @default(uuid())
+    teamName              String         @map("team_name")
+    league                LeagueType
+    organizationLegalName String         @map("organization_legal_name")
+    primaryContactName    String?        @map("primary_contact_name")
+    primaryContactEmail   String?        @map("primary_contact_email")
+    primaryContactPhone   String?        @map("primary_contact_phone")
+    stadiumName           String?        @map("stadium_name")
+    stadiumAddress        String?        @map("stadium_address")
+    contractType          ContractType   @map("contract_type")
+    contractStartDate     DateTime?      @map("contract_start_date") @db.Date
+    contractEndDate       DateTime?      @map("contract_end_date") @db.Date
+    activeStatus          CustomerStatus @default(active) @map("active_status")
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    serializedAssets SerializedAsset[]
+    deployments      Deployment[]
+
+    @@map("customers")
+}
+
+model SerializedAsset {
+    id               String            @id @default(uuid())
+    serialNumber     String            @map("serial_number")
+    skuId            String?           @map("sku_id")
+    productCategory  ProductCategory   @map("product_category")
+    productTypeModel String?           @map("product_type_model")
+    lifecycleStatus  LifecycleStatus   @default(in_warehouse_available) @map("lifecycle_status")
+    currentLocation  WarehouseLocation @map("current_location")
+    customerId       String?           @map("customer_id")
+    dateAcquired     DateTime?         @map("date_acquired") @db.Date
+    responsiblePerson String?          @map("responsible_person")
+    notes            String?
+
+    // Bench-specific fields
+    manufacturer        String?
+    benchType           String?         @map("bench_type")
+    flangeOrDiffuser    String?         @map("flange_or_diffuser")
+    wheelType           String?         @map("wheel_type")
+    ventHoles           Boolean?        @map("vent_holes")
+    yearManufactured    Int?            @map("year_manufactured")
+    brandingStatus      BrandingStatus? @map("branding_status")
+    brandingType        BrandingType?   @map("branding_type")
+    brandingDescription String?         @map("branding_description")
+
+    // Heater-specific fields
+    heaterType String? @map("heater_type")
+    btuLevel   String? @map("btu_level")
+
+    // AC-specific fields
+    btuRating Int? @map("btu_rating")
+    amps      Int? @map("amps")
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    // Relations
+    sku      SkuMaster? @relation(fields: [skuId], references: [id])
+    customer Customer?  @relation(fields: [customerId], references: [id])
+
+    deployments     Deployment[]
+    transfersAsset  Transfer[]   @relation("TransferAsset")
+
+    @@map("serialized_assets")
+}
+
+model QuantityInventory {
+    id                String            @id @default(uuid())
+    itemCategory      String            @map("item_category")
+    itemVariant       String?           @map("item_variant")
+    location          WarehouseLocation
+    quantityOnHand    Int               @default(0) @map("quantity_on_hand")
+    reorderLevel      Int               @default(0) @map("reorder_level")
+    lastCountDate     DateTime?         @map("last_count_date") @db.Date
+    responsiblePerson String?           @map("responsible_person")
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    transfersItem Transfer[] @relation("TransferItem")
+
+    @@map("quantity_inventory")
+}
+
+model Deployment {
+    id                 String   @id @default(uuid())
+    assetId            String   @map("asset_id")
+    customerId         String   @map("customer_id")
+    deploymentDate     DateTime @map("deployment_date") @db.Date
+    expectedReturnDate DateTime? @map("expected_return_date") @db.Date
+    actualReturnDate   DateTime? @map("actual_return_date") @db.Date
+    deploymentNotes    String?  @map("deployment_notes")
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    asset    SerializedAsset @relation(fields: [assetId], references: [id])
+    customer Customer        @relation(fields: [customerId], references: [id])
+
+    @@map("deployments")
+}
+
+model Transfer {
+    id                  String            @id @default(uuid())
+    assetId             String?           @map("asset_id")
+    itemId              String?           @map("item_id")
+    quantity            Int?
+    originLocation      WarehouseLocation @map("origin_location")
+    destinationLocation WarehouseLocation @map("destination_location")
+    transferDate        DateTime          @map("transfer_date") @db.Date
+    transferInitiatedBy String?           @map("transfer_initiated_by")
+    transferReceivedBy  String?           @map("transfer_received_by")
+    transferStatus      TransferStatus    @default(initiated) @map("transfer_status")
+    notes               String?
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    asset        SerializedAsset?   @relation("TransferAsset", fields: [assetId], references: [id])
+    quantityItem QuantityInventory? @relation("TransferItem", fields: [itemId], references: [id])
+
+    @@map("transfers")
+}
