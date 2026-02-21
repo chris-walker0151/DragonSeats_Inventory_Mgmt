@@ -3,7 +3,7 @@
  * Category codes used in SKU generation.
  */
 
-import type { ProductCategory } from "@/generated/prisma";
+import type { ProductCategory } from "@/generated/prisma/client";
 
 export const SKU_CATEGORY_CODES: Record<ProductCategory, string> = {
     bench: "BN",

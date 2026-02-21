@@ -17,7 +17,7 @@ import {
     ALL_PRODUCT_CATEGORIES,
     ALL_LIFECYCLE_STATUSES,
 } from "@/lib/serialized-assets/constants";
-import type { ProductCategory, LifecycleStatus } from "@/generated/prisma";
+import type { ProductCategory, LifecycleStatus } from "@/generated/prisma/client";
 import { cn } from "@/lib/utils";
 import { Package } from "lucide-react";
 

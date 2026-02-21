@@ -3,7 +3,7 @@
  * Transfer status labels, colors, and filter arrays.
  */
 
-import type { TransferStatus } from "@/generated/prisma";
+import type { TransferStatus } from "@/generated/prisma/client";
 
 // ─── Transfer Status ─────────────────────────────────────────────────────────
 

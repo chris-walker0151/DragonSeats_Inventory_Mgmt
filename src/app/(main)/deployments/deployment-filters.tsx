@@ -12,7 +12,7 @@ import {
     PRODUCT_CATEGORY_LABELS,
     ALL_PRODUCT_CATEGORIES,
 } from "@/lib/serialized-assets/constants";
-import type { ProductCategory } from "@/generated/prisma";
+import type { ProductCategory } from "@/generated/prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { Search, Truck } from "lucide-react";
 

@@ -8,7 +8,7 @@ import type {
     LifecycleStatus,
     WarehouseLocation,
     BrandingStatus,
-} from "@/generated/prisma";
+} from "@/generated/prisma/client";
 
 // ─── Product Category ────────────────────────────────────────────────────────
 

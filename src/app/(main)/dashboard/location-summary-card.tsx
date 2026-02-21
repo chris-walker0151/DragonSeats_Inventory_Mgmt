@@ -7,7 +7,7 @@ import {
     LIFECYCLE_STATUS_COLORS,
 } from "@/lib/serialized-assets/constants";
 import { WAREHOUSES } from "@/lib/constants";
-import type { WarehouseLocation, LifecycleStatus } from "@/generated/prisma";
+import type { WarehouseLocation, LifecycleStatus } from "@/generated/prisma/client";
 import { cn } from "@/lib/utils";
 import { MapPin } from "lucide-react";
 

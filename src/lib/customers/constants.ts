@@ -7,7 +7,7 @@ import type {
     LeagueType,
     CustomerStatus,
     ContractType,
-} from "@/generated/prisma";
+} from "@/generated/prisma/client";
 
 // ─── League Type ─────────────────────────────────────────────────────────────
 

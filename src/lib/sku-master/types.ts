@@ -3,7 +3,7 @@
  * Mirrors database schema for sku_master table.
  */
 
-import type { ProductCategory } from "@/generated/prisma";
+import type { ProductCategory } from "@/generated/prisma/client";
 
 export interface SkuListItem {
     id: string;

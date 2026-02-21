@@ -8,7 +8,7 @@ import type {
     CustomerStatus,
     ContractType,
     ProductCategory,
-} from "@/generated/prisma";
+} from "@/generated/prisma/client";
 
 export type LeagueFilter = LeagueType | "all";
 export type StatusFilter = CustomerStatus | "all";

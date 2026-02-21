@@ -23,7 +23,7 @@ import type {
     LocationFilter,
     BrandingFilter,
 } from "@/lib/serialized-assets/types";
-import type { BrandingStatus } from "@/generated/prisma";
+import type { BrandingStatus } from "@/generated/prisma/client";
 import { Search } from "lucide-react";
 
 const ALL_BRANDING_STATUSES: BrandingStatus[] = ["unbranded", "branded"];

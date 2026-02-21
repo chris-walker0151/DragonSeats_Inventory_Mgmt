@@ -16,7 +16,7 @@ import {
     WAREHOUSE_LOCATION_LABELS,
     ALL_WAREHOUSE_LOCATIONS,
 } from "@/lib/serialized-assets/constants";
-import type { TransferStatus, WarehouseLocation } from "@/generated/prisma";
+import type { TransferStatus, WarehouseLocation } from "@/generated/prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { Search, ArrowLeftRight } from "lucide-react";
 

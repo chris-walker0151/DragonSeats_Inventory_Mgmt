@@ -1,7 +1,7 @@
 "use client";
 
 import type { TransferListItem } from "@/lib/transfers/types";
-import type { TransferStatus, WarehouseLocation } from "@/generated/prisma";
+import type { TransferStatus, WarehouseLocation } from "@/generated/prisma/client";
 import { useFilters, usePaginatedFilter } from "@/hooks";
 import { TransferFilters } from "./transfer-filters";
 import { TransferTable } from "./transfer-table";

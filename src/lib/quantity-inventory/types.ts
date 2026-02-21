@@ -3,7 +3,7 @@
  * Mirrors database schema for quantity_inventory table.
  */
 
-import type { WarehouseLocation } from "@/generated/prisma";
+import type { WarehouseLocation } from "@/generated/prisma/client";
 
 export type LocationFilter = WarehouseLocation | "all";
 

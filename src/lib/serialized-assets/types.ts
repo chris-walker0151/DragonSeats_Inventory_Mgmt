@@ -9,7 +9,7 @@ import type {
     WarehouseLocation,
     BrandingStatus,
     BrandingType,
-} from "@/generated/prisma";
+} from "@/generated/prisma/client";
 
 export type CategoryFilter = ProductCategory | "all";
 export type StatusFilter = LifecycleStatus | "all";

@@ -3,7 +3,7 @@
  * Mirrors database schema for deployments table.
  */
 
-import type { ProductCategory } from "@/generated/prisma";
+import type { ProductCategory } from "@/generated/prisma/client";
 
 export interface DeploymentListItem {
     id: string;

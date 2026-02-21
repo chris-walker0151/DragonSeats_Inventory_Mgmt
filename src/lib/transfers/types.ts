@@ -7,7 +7,7 @@ import type {
     WarehouseLocation,
     TransferStatus,
     ProductCategory,
-} from "@/generated/prisma";
+} from "@/generated/prisma/client";
 
 export interface TransferListItem {
     id: string;

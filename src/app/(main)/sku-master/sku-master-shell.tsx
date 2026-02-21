@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import type { SkuListItem } from "@/lib/sku-master/types";
-import type { ProductCategory } from "@/generated/prisma";
+import type { ProductCategory } from "@/generated/prisma/client";
 import { SkuTable } from "./sku-table";
 import { SkuConventionCard } from "./sku-convention-card";
 import { Input } from "@/components/ui/input";

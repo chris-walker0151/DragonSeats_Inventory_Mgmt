@@ -1,7 +1,7 @@
 "use client";
 
 import type { DeploymentListItem } from "@/lib/deployments/types";
-import type { ProductCategory } from "@/generated/prisma";
+import type { ProductCategory } from "@/generated/prisma/client";
 import { useFilters, usePaginatedFilter } from "@/hooks";
 import { DeploymentFilters } from "./deployment-filters";
 import { DeploymentTable } from "./deployment-table";
