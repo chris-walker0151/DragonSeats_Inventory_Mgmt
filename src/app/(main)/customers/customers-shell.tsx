@@ -13,7 +13,8 @@ import { ITEMS_PER_PAGE } from "@/lib/constants";
 import { CUSTOMER_COLUMNS } from "@/lib/import/constants";
 import { importCustomersAction } from "./actions";
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
+import { Upload, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type CustomerFilters_ = {
     league: string;
@@ -21,12 +22,14 @@ type CustomerFilters_ = {
 };
 
 export function CustomersShell({ customers }: { customers: CustomerListItem[] }) {
+    const router = useRouter();
     const { filters, setFilter, search, setSearch } = useFilters<CustomerFilters_>({
         league: "all",
         status: "all",
     });
 
     const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+    const [sheetMode, setSheetMode] = useState<"view" | "create">("view");
     const [importOpen, setImportOpen] = useState(false);
 
     const { paginated, page, totalPages, totalFiltered, setPage } =
@@ -41,12 +44,37 @@ export function CustomersShell({ customers }: { customers: CustomerListItem[] })
             },
         });
 
+    function handleOpenCreate() {
+        setSelectedCustomerId(null);
+        setSheetMode("create");
+    }
+
+    function handleSelectCustomer(id: string) {
+        setSheetMode("view");
+        setSelectedCustomerId(id);
+    }
+
+    function handleCloseSheet() {
+        setSelectedCustomerId(null);
+        setSheetMode("view");
+    }
+
+    function handleSaved() {
+        router.refresh();
+    }
+
+    const sheetOpen = selectedCustomerId !== null || sheetMode === "create";
+
     return (
         <>
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
                     <Upload className="mr-2 h-4 w-4" />
                     Import
+                </Button>
+                <Button size="sm" onClick={handleOpenCreate}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add New
                 </Button>
             </div>
 
@@ -62,7 +90,7 @@ export function CustomersShell({ customers }: { customers: CustomerListItem[] })
 
             <CustomerTable
                 customers={paginated}
-                onSelect={(id) => setSelectedCustomerId(id)}
+                onSelect={handleSelectCustomer}
             />
 
             <Pagination
@@ -75,8 +103,10 @@ export function CustomersShell({ customers }: { customers: CustomerListItem[] })
 
             <CustomerDetailSheet
                 customerId={selectedCustomerId}
-                open={selectedCustomerId !== null}
-                onClose={() => setSelectedCustomerId(null)}
+                open={sheetOpen}
+                onClose={handleCloseSheet}
+                mode={sheetMode}
+                onSaved={handleSaved}
             />
 
             <ImportDialog
@@ -85,6 +115,7 @@ export function CustomersShell({ customers }: { customers: CustomerListItem[] })
                 title="Import Customers"
                 description="Upload an Excel or CSV file with customer data. Existing customers will be updated by team name."
                 columns={CUSTOMER_COLUMNS}
+                templateFileName="customers-template.xlsx"
                 onImport={importCustomersAction}
             />
         </>

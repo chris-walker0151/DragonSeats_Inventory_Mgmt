@@ -28,31 +28,112 @@ import {
     WAREHOUSE_LOCATION_LABELS,
     BRANDING_STATUS_LABELS,
     BRANDING_STATUS_COLORS,
+    ALL_PRODUCT_CATEGORIES,
+    ALL_LIFECYCLE_STATUSES,
+    ALL_WAREHOUSE_LOCATIONS,
 } from "@/lib/serialized-assets/constants";
 import { WAREHOUSES } from "@/lib/constants";
 import type { SerializedAssetDetail } from "@/lib/serialized-assets/types";
+import type { ProductCategory, LifecycleStatus, WarehouseLocation, BrandingStatus } from "@/generated/prisma/client";
 import {
     fetchAssetDetail,
     deployAssetAction,
     returnAssetAction,
     fetchActiveCustomersAction,
+    createAssetAction,
+    updateAssetAction,
 } from "./actions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Pencil } from "lucide-react";
+
+type SheetMode = "view" | "edit" | "create";
 
 interface AssetDetailSheetProps {
     assetId: string | null;
     open: boolean;
     onClose: () => void;
+    mode?: "view" | "create";
+    onSaved?: () => void;
 }
 
-export function AssetDetailSheet({ assetId, open, onClose }: AssetDetailSheetProps) {
+interface AssetFormData {
+    serialNumber: string;
+    productCategory: ProductCategory;
+    productTypeModel: string;
+    lifecycleStatus: LifecycleStatus;
+    currentLocation: WarehouseLocation;
+    customerId: string;
+    manufacturer: string;
+    yearManufactured: string;
+    notes: string;
+    benchType: string;
+    flangeOrDiffuser: string;
+    wheelType: string;
+    brandingStatus: string;
+    brandingDescription: string;
+    heaterType: string;
+    btuLevel: string;
+    btuRating: string;
+    amps: string;
+    maintenanceNotes: string;
+}
+
+const EMPTY_FORM: AssetFormData = {
+    serialNumber: "",
+    productCategory: "bench",
+    productTypeModel: "",
+    lifecycleStatus: "in_warehouse_available",
+    currentLocation: "cleveland_warehouse",
+    customerId: "",
+    manufacturer: "",
+    yearManufactured: "",
+    notes: "",
+    benchType: "",
+    flangeOrDiffuser: "",
+    wheelType: "",
+    brandingStatus: "",
+    brandingDescription: "",
+    heaterType: "",
+    btuLevel: "",
+    btuRating: "",
+    amps: "",
+    maintenanceNotes: "",
+};
+
+function detailToForm(detail: SerializedAssetDetail): AssetFormData {
+    return {
+        serialNumber: detail.serialNumber,
+        productCategory: detail.productCategory,
+        productTypeModel: detail.productTypeModel ?? "",
+        lifecycleStatus: detail.lifecycleStatus,
+        currentLocation: detail.currentLocation,
+        customerId: detail.customerId ?? "",
+        manufacturer: detail.manufacturer ?? "",
+        yearManufactured: detail.yearManufactured?.toString() ?? "",
+        notes: detail.notes ?? "",
+        benchType: detail.benchType ?? "",
+        flangeOrDiffuser: detail.flangeOrDiffuser ?? "",
+        wheelType: detail.wheelType ?? "",
+        brandingStatus: detail.brandingStatus ?? "",
+        brandingDescription: detail.brandingDescription ?? "",
+        heaterType: detail.heaterType ?? "",
+        btuLevel: detail.btuLevel ?? "",
+        btuRating: detail.btuRating?.toString() ?? "",
+        amps: detail.amps?.toString() ?? "",
+        maintenanceNotes: detail.maintenanceNotes ?? "",
+    };
+}
+
+export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "view", onSaved }: AssetDetailSheetProps) {
     const [detail, setDetail] = useState<SerializedAssetDetail | null>(null);
     const [isPending, startTransition] = useTransition();
+    const [sheetMode, setSheetMode] = useState<SheetMode>(initialMode);
+    const [formData, setFormData] = useState<AssetFormData>(EMPTY_FORM);
+    const [customers, setCustomers] = useState<{ id: string; teamName: string }[]>([]);
 
     // Deploy form state
     const [showDeployForm, setShowDeployForm] = useState(false);
-    const [customers, setCustomers] = useState<{ id: string; teamName: string }[]>([]);
     const [deployCustomerId, setDeployCustomerId] = useState("");
     const [deployDate, setDeployDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [deployExpectedReturn, setDeployExpectedReturn] = useState("");
@@ -62,25 +143,112 @@ export function AssetDetailSheet({ assetId, open, onClose }: AssetDetailSheetPro
     const [showReturnForm, setShowReturnForm] = useState(false);
     const [returnLocation, setReturnLocation] = useState("");
 
+    const isEditing = sheetMode === "edit" || sheetMode === "create";
+
     useEffect(() => {
+        if (initialMode === "create") {
+            setSheetMode("create");
+            setFormData(EMPTY_FORM);
+            setDetail(null);
+            // Load customers for the dropdown
+            startTransition(async () => {
+                const list = await fetchActiveCustomersAction();
+                setCustomers(list);
+            });
+            return;
+        }
+
+        setSheetMode("view");
         if (assetId) {
             startTransition(async () => {
                 const data = await fetchAssetDetail(assetId);
                 setDetail(data);
+                if (data) setFormData(detailToForm(data));
             });
         } else {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setDetail(null);
         }
         setShowDeployForm(false);
         setShowReturnForm(false);
-    }, [assetId]);
+    }, [assetId, initialMode]);
 
-    const canDeploy = detail && (
+    function handleEdit() {
+        if (detail) setFormData(detailToForm(detail));
+        startTransition(async () => {
+            const list = await fetchActiveCustomersAction();
+            setCustomers(list);
+            setSheetMode("edit");
+        });
+    }
+
+    function handleCancelEdit() {
+        if (detail) setFormData(detailToForm(detail));
+        setSheetMode("view");
+    }
+
+    function updateField(field: keyof AssetFormData, value: string) {
+        setFormData((prev) => ({ ...prev, [field]: value }));
+    }
+
+    function handleSave() {
+        if (!formData.serialNumber.trim()) {
+            toast.error("Serial number is required");
+            return;
+        }
+
+        startTransition(async () => {
+            const payload = {
+                productCategory: formData.productCategory,
+                currentLocation: formData.currentLocation,
+                lifecycleStatus: formData.lifecycleStatus,
+                productTypeModel: formData.productTypeModel || null,
+                customerId: formData.customerId || null,
+                manufacturer: formData.manufacturer || null,
+                yearManufactured: formData.yearManufactured ? Number(formData.yearManufactured) : null,
+                notes: formData.notes || null,
+                benchType: formData.benchType || null,
+                flangeOrDiffuser: formData.flangeOrDiffuser || null,
+                wheelType: formData.wheelType || null,
+                brandingStatus: (formData.brandingStatus || null) as BrandingStatus | null,
+                brandingDescription: formData.brandingDescription || null,
+                heaterType: formData.heaterType || null,
+                btuLevel: formData.btuLevel || null,
+                btuRating: formData.btuRating ? Number(formData.btuRating) : null,
+                amps: formData.amps ? Number(formData.amps) : null,
+                maintenanceNotes: formData.maintenanceNotes || null,
+            };
+
+            try {
+                if (sheetMode === "create") {
+                    const { id } = await createAssetAction({
+                        serialNumber: formData.serialNumber.trim(),
+                        ...payload,
+                    });
+                    toast.success("Asset created");
+                    const refreshed = await fetchAssetDetail(id);
+                    setDetail(refreshed);
+                    if (refreshed) setFormData(detailToForm(refreshed));
+                    setSheetMode("view");
+                } else {
+                    await updateAssetAction(detail!.id, payload);
+                    toast.success("Asset updated");
+                    const refreshed = await fetchAssetDetail(detail!.id);
+                    setDetail(refreshed);
+                    if (refreshed) setFormData(detailToForm(refreshed));
+                    setSheetMode("view");
+                }
+                onSaved?.();
+            } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to save");
+            }
+        });
+    }
+
+    const canDeploy = detail && sheetMode === "view" && (
         detail.lifecycleStatus === "in_warehouse_available" ||
         detail.lifecycleStatus === "in_warehouse_reserved"
     );
-    const canReturn = detail?.lifecycleStatus === "deployed_customer";
+    const canReturn = detail && sheetMode === "view" && detail.lifecycleStatus === "deployed_customer";
 
     function handleOpenDeployForm() {
         startTransition(async () => {
@@ -108,6 +276,7 @@ export function AssetDetailSheet({ assetId, open, onClose }: AssetDetailSheetPro
             const refreshed = await fetchAssetDetail(detail.id);
             setDetail(refreshed);
             setShowDeployForm(false);
+            onSaved?.();
         });
     }
 
@@ -122,254 +291,362 @@ export function AssetDetailSheet({ assetId, open, onClose }: AssetDetailSheetPro
             const refreshed = await fetchAssetDetail(detail.id);
             setDetail(refreshed);
             setShowReturnForm(false);
+            onSaved?.();
         });
     }
+
+    const showLoading = initialMode !== "create" && (isPending || !detail);
+    const cat = isEditing ? formData.productCategory : detail?.productCategory;
 
     return (
         <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
             <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
-                {isPending || !detail ? (
+                {showLoading ? (
                     <DetailSkeleton />
                 ) : (
                     <>
                         <SheetHeader>
                             <SheetTitle className="flex items-center gap-2">
-                                <span className="font-mono">{detail.serialNumber}</span>
-                                <Badge
-                                    className={cn(
-                                        "text-[10px]",
-                                        LIFECYCLE_STATUS_COLORS[detail.lifecycleStatus],
-                                    )}
-                                >
-                                    {LIFECYCLE_STATUS_LABELS[detail.lifecycleStatus]}
-                                </Badge>
+                                {sheetMode === "create" ? (
+                                    "New Asset"
+                                ) : (
+                                    <>
+                                        <span className="font-mono">{detail!.serialNumber}</span>
+                                        <Badge
+                                            className={cn(
+                                                "text-[10px]",
+                                                LIFECYCLE_STATUS_COLORS[detail!.lifecycleStatus],
+                                            )}
+                                        >
+                                            {LIFECYCLE_STATUS_LABELS[detail!.lifecycleStatus]}
+                                        </Badge>
+                                        {sheetMode === "view" && (
+                                            <Button variant="ghost" size="icon" className="ml-auto h-7 w-7" onClick={handleEdit}>
+                                                <Pencil className="h-3.5 w-3.5" />
+                                            </Button>
+                                        )}
+                                    </>
+                                )}
                             </SheetTitle>
                             <SheetDescription>
-                                {PRODUCT_CATEGORY_LABELS[detail.productCategory]}
-                                {detail.productTypeModel && ` — ${detail.productTypeModel}`}
+                                {sheetMode === "create"
+                                    ? "Fill in the details to create a new serialized asset."
+                                    : `${PRODUCT_CATEGORY_LABELS[detail!.productCategory]}${detail!.productTypeModel ? ` — ${detail!.productTypeModel}` : ""}`}
                             </SheetDescription>
                         </SheetHeader>
 
                         <div className="space-y-6 px-1">
                             {/* General Info */}
                             <Section title="General">
-                                <Field label="SKU" value={detail.sku?.sku} />
-                                <Field label="Location" value={WAREHOUSE_LOCATION_LABELS[detail.currentLocation]} />
-                                <Field label="Customer" value={detail.customer?.teamName} />
-                                <Field label="Date Acquired" value={detail.dateAcquired ? new Date(detail.dateAcquired).toLocaleDateString() : null} />
-                                <Field label="Responsible" value={detail.responsiblePerson} />
-                                <Field label="Manufacturer" value={detail.manufacturer} />
-                                <Field label="Year Manufactured" value={detail.yearManufactured?.toString()} />
+                                {isEditing ? (
+                                    <div className="space-y-3">
+                                        {sheetMode === "create" && (
+                                            <FormField label="Serial Number *">
+                                                <Input value={formData.serialNumber} onChange={(e) => updateField("serialNumber", e.target.value)} placeholder="e.g. BN-0001" />
+                                            </FormField>
+                                        )}
+                                        <FormField label="Product Category *">
+                                            <Select value={formData.productCategory} onValueChange={(v) => updateField("productCategory", v)}>
+                                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    {ALL_PRODUCT_CATEGORIES.map((c) => (
+                                                        <SelectItem key={c} value={c}>{PRODUCT_CATEGORY_LABELS[c]}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </FormField>
+                                        <FormField label="Product Type/Model">
+                                            <Input value={formData.productTypeModel} onChange={(e) => updateField("productTypeModel", e.target.value)} />
+                                        </FormField>
+                                        <FormField label="Lifecycle Status">
+                                            <Select value={formData.lifecycleStatus} onValueChange={(v) => updateField("lifecycleStatus", v)}>
+                                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    {ALL_LIFECYCLE_STATUSES.map((s) => (
+                                                        <SelectItem key={s} value={s}>{LIFECYCLE_STATUS_LABELS[s]}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </FormField>
+                                        <FormField label="Location *">
+                                            <Select value={formData.currentLocation} onValueChange={(v) => updateField("currentLocation", v)}>
+                                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    {ALL_WAREHOUSE_LOCATIONS.map((l) => (
+                                                        <SelectItem key={l} value={l}>{WAREHOUSE_LOCATION_LABELS[l]}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </FormField>
+                                        <FormField label="Customer">
+                                            <Select value={formData.customerId || "none"} onValueChange={(v) => updateField("customerId", v === "none" ? "" : v)}>
+                                                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none">None</SelectItem>
+                                                    {customers.map((c) => (
+                                                        <SelectItem key={c.id} value={c.id}>{c.teamName}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </FormField>
+                                        <FormField label="Manufacturer">
+                                            <Input value={formData.manufacturer} onChange={(e) => updateField("manufacturer", e.target.value)} />
+                                        </FormField>
+                                        <FormField label="Year Manufactured">
+                                            <Input type="number" value={formData.yearManufactured} onChange={(e) => updateField("yearManufactured", e.target.value)} />
+                                        </FormField>
+                                        <FormField label="Notes">
+                                            <Input value={formData.notes} onChange={(e) => updateField("notes", e.target.value)} />
+                                        </FormField>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <Field label="SKU" value={detail!.sku?.sku} />
+                                        <Field label="Location" value={WAREHOUSE_LOCATION_LABELS[detail!.currentLocation]} />
+                                        <Field label="Customer" value={detail!.customer?.teamName} />
+                                        <Field label="Date Acquired" value={detail!.dateAcquired ? new Date(detail!.dateAcquired).toLocaleDateString() : null} />
+                                        <Field label="Responsible" value={detail!.responsiblePerson} />
+                                        <Field label="Manufacturer" value={detail!.manufacturer} />
+                                        <Field label="Year Manufactured" value={detail!.yearManufactured?.toString()} />
+                                    </>
+                                )}
                             </Section>
 
-                            {/* Deploy / Return Actions */}
+                            {/* Deploy / Return Actions (view mode only) */}
                             {canDeploy && !showDeployForm && (
-                                <Button
-                                    onClick={handleOpenDeployForm}
-                                    className="w-full"
-                                    disabled={isPending}
-                                >
+                                <Button onClick={handleOpenDeployForm} className="w-full" disabled={isPending}>
                                     Deploy to Customer
                                 </Button>
                             )}
 
-                            {showDeployForm && (
+                            {showDeployForm && sheetMode === "view" && (
                                 <Section title="Deploy to Customer">
                                     <div className="space-y-3">
                                         <div className="space-y-1.5">
                                             <Label className="text-xs">Customer</Label>
                                             <Select value={deployCustomerId} onValueChange={setDeployCustomerId}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select customer..." />
-                                                </SelectTrigger>
+                                                <SelectTrigger><SelectValue placeholder="Select customer..." /></SelectTrigger>
                                                 <SelectContent>
                                                     {customers.map((c) => (
-                                                        <SelectItem key={c.id} value={c.id}>
-                                                            {c.teamName}
-                                                        </SelectItem>
+                                                        <SelectItem key={c.id} value={c.id}>{c.teamName}</SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
                                         </div>
                                         <div className="space-y-1.5">
                                             <Label className="text-xs">Deployment Date</Label>
-                                            <Input
-                                                type="date"
-                                                value={deployDate}
-                                                onChange={(e) => setDeployDate(e.target.value)}
-                                            />
+                                            <Input type="date" value={deployDate} onChange={(e) => setDeployDate(e.target.value)} />
                                         </div>
                                         <div className="space-y-1.5">
                                             <Label className="text-xs">Expected Return Date</Label>
-                                            <Input
-                                                type="date"
-                                                value={deployExpectedReturn}
-                                                onChange={(e) => setDeployExpectedReturn(e.target.value)}
-                                            />
+                                            <Input type="date" value={deployExpectedReturn} onChange={(e) => setDeployExpectedReturn(e.target.value)} />
                                         </div>
                                         <div className="space-y-1.5">
                                             <Label className="text-xs">Notes</Label>
-                                            <Input
-                                                value={deployNotes}
-                                                onChange={(e) => setDeployNotes(e.target.value)}
-                                                placeholder="Deployment notes..."
-                                            />
+                                            <Input value={deployNotes} onChange={(e) => setDeployNotes(e.target.value)} placeholder="Deployment notes..." />
                                         </div>
                                         <div className="flex gap-2">
-                                            <Button
-                                                onClick={handleDeploy}
-                                                disabled={!deployCustomerId || !deployDate || isPending}
-                                                className="flex-1"
-                                            >
+                                            <Button onClick={handleDeploy} disabled={!deployCustomerId || !deployDate || isPending} className="flex-1">
                                                 {isPending ? "Deploying..." : "Confirm Deploy"}
                                             </Button>
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => setShowDeployForm(false)}
-                                            >
-                                                Cancel
-                                            </Button>
+                                            <Button variant="outline" onClick={() => setShowDeployForm(false)}>Cancel</Button>
                                         </div>
                                     </div>
                                 </Section>
                             )}
 
                             {canReturn && !showReturnForm && (
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setShowReturnForm(true)}
-                                    className="w-full"
-                                    disabled={isPending}
-                                >
+                                <Button variant="outline" onClick={() => setShowReturnForm(true)} className="w-full" disabled={isPending}>
                                     Return from Customer
                                 </Button>
                             )}
 
-                            {showReturnForm && (
+                            {showReturnForm && sheetMode === "view" && (
                                 <Section title="Return to Warehouse">
                                     <div className="space-y-3">
                                         <div className="space-y-1.5">
                                             <Label className="text-xs">Return Location</Label>
                                             <Select value={returnLocation} onValueChange={setReturnLocation}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select warehouse..." />
-                                                </SelectTrigger>
+                                                <SelectTrigger><SelectValue placeholder="Select warehouse..." /></SelectTrigger>
                                                 <SelectContent>
                                                     {WAREHOUSES.map((wh) => (
-                                                        <SelectItem key={wh.location} value={wh.location}>
-                                                            {wh.name}
-                                                        </SelectItem>
+                                                        <SelectItem key={wh.location} value={wh.location}>{wh.name}</SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
                                         </div>
                                         <div className="flex gap-2">
-                                            <Button
-                                                onClick={handleReturn}
-                                                disabled={!returnLocation || isPending}
-                                                className="flex-1"
-                                            >
+                                            <Button onClick={handleReturn} disabled={!returnLocation || isPending} className="flex-1">
                                                 {isPending ? "Returning..." : "Confirm Return"}
                                             </Button>
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => setShowReturnForm(false)}
-                                            >
-                                                Cancel
-                                            </Button>
+                                            <Button variant="outline" onClick={() => setShowReturnForm(false)}>Cancel</Button>
                                         </div>
                                     </div>
                                 </Section>
                             )}
 
                             {/* Category-specific fields */}
-                            {detail.productCategory === "bench" && (
+                            {cat === "bench" && (
                                 <Section title="Bench Details">
-                                    <Field label="Bench Type" value={detail.benchType} />
-                                    <Field label="Flange/Diffuser" value={detail.flangeOrDiffuser} />
-                                    <Field label="Wheel Type" value={detail.wheelType} />
-                                    <Field label="Vent Holes" value={detail.ventHoles != null ? (detail.ventHoles ? "Yes" : "No") : null} />
-                                    {detail.brandingStatus && (
-                                        <div className="flex items-center justify-between py-1.5">
-                                            <span className="text-xs text-muted-foreground">Branding</span>
-                                            <Badge
-                                                className={cn(
-                                                    "text-[10px]",
-                                                    BRANDING_STATUS_COLORS[detail.brandingStatus],
-                                                )}
-                                            >
-                                                {BRANDING_STATUS_LABELS[detail.brandingStatus]}
-                                            </Badge>
+                                    {isEditing ? (
+                                        <div className="space-y-3">
+                                            <FormField label="Bench Type">
+                                                <Input value={formData.benchType} onChange={(e) => updateField("benchType", e.target.value)} />
+                                            </FormField>
+                                            <FormField label="Flange/Diffuser">
+                                                <Input value={formData.flangeOrDiffuser} onChange={(e) => updateField("flangeOrDiffuser", e.target.value)} />
+                                            </FormField>
+                                            <FormField label="Wheel Type">
+                                                <Input value={formData.wheelType} onChange={(e) => updateField("wheelType", e.target.value)} />
+                                            </FormField>
+                                            <FormField label="Branding Status">
+                                                <Select value={formData.brandingStatus || "none"} onValueChange={(v) => updateField("brandingStatus", v === "none" ? "" : v)}>
+                                                    <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="none">None</SelectItem>
+                                                        <SelectItem value="unbranded">Unbranded</SelectItem>
+                                                        <SelectItem value="branded">Branded</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormField>
+                                            <FormField label="Branding Description">
+                                                <Input value={formData.brandingDescription} onChange={(e) => updateField("brandingDescription", e.target.value)} />
+                                            </FormField>
                                         </div>
+                                    ) : (
+                                        <>
+                                            <Field label="Bench Type" value={detail!.benchType} />
+                                            <Field label="Flange/Diffuser" value={detail!.flangeOrDiffuser} />
+                                            <Field label="Wheel Type" value={detail!.wheelType} />
+                                            <Field label="Vent Holes" value={detail!.ventHoles != null ? (detail!.ventHoles ? "Yes" : "No") : null} />
+                                            {detail!.brandingStatus && (
+                                                <div className="flex items-center justify-between py-1.5">
+                                                    <span className="text-xs text-muted-foreground">Branding</span>
+                                                    <Badge className={cn("text-[10px]", BRANDING_STATUS_COLORS[detail!.brandingStatus])}>
+                                                        {BRANDING_STATUS_LABELS[detail!.brandingStatus]}
+                                                    </Badge>
+                                                </div>
+                                            )}
+                                            <Field label="Branding Desc" value={detail!.brandingDescription} />
+                                        </>
                                     )}
-                                    <Field label="Branding Desc" value={detail.brandingDescription} />
                                 </Section>
                             )}
 
-                            {detail.productCategory === "heater" && (
+                            {cat === "heater" && (
                                 <Section title="Heater Details">
-                                    <Field label="Heater Type" value={detail.heaterType} />
-                                    <Field label="BTU Level" value={detail.btuLevel} />
+                                    {isEditing ? (
+                                        <div className="space-y-3">
+                                            <FormField label="Heater Type">
+                                                <Input value={formData.heaterType} onChange={(e) => updateField("heaterType", e.target.value)} />
+                                            </FormField>
+                                            <FormField label="BTU Level">
+                                                <Input value={formData.btuLevel} onChange={(e) => updateField("btuLevel", e.target.value)} />
+                                            </FormField>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Field label="Heater Type" value={detail!.heaterType} />
+                                            <Field label="BTU Level" value={detail!.btuLevel} />
+                                        </>
+                                    )}
                                 </Section>
                             )}
 
-                            {detail.productCategory === "ac_unit" && (
+                            {cat === "ac_unit" && (
                                 <Section title="AC Unit Details">
-                                    <Field label="BTU Rating" value={detail.btuRating?.toLocaleString()} />
-                                    <Field label="Amps" value={detail.amps?.toString()} />
+                                    {isEditing ? (
+                                        <div className="space-y-3">
+                                            <FormField label="BTU Rating">
+                                                <Input type="number" value={formData.btuRating} onChange={(e) => updateField("btuRating", e.target.value)} />
+                                            </FormField>
+                                            <FormField label="Amps">
+                                                <Input type="number" value={formData.amps} onChange={(e) => updateField("amps", e.target.value)} />
+                                            </FormField>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Field label="BTU Rating" value={detail!.btuRating?.toLocaleString()} />
+                                            <Field label="Amps" value={detail!.amps?.toString()} />
+                                        </>
+                                    )}
                                 </Section>
                             )}
 
-                            {/* Notes */}
-                            {detail.notes && (
+                            {/* Maintenance Notes (edit mode) */}
+                            {isEditing && (
+                                <Section title="Maintenance">
+                                    <div className="space-y-3">
+                                        <FormField label="Maintenance Notes">
+                                            <Input value={formData.maintenanceNotes} onChange={(e) => updateField("maintenanceNotes", e.target.value)} />
+                                        </FormField>
+                                    </div>
+                                </Section>
+                            )}
+
+                            {/* Notes (view mode) */}
+                            {!isEditing && detail!.notes && (
                                 <Section title="Notes">
                                     <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                                        {detail.notes}
+                                        {detail!.notes}
                                     </p>
                                 </Section>
                             )}
 
-                            {/* Deployment History */}
-                            <Section title="Deployment History">
-                                {detail.deployments.length === 0 ? (
-                                    <p className="text-xs text-muted-foreground">No deployments recorded.</p>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {detail.deployments.map((d) => (
-                                            <div
-                                                key={d.id}
-                                                className="rounded-lg border p-3 text-sm space-y-1"
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <span className="font-medium">{d.customerName}</span>
-                                                    <span className="text-xs text-muted-foreground tabular-nums">
-                                                        {new Date(d.deploymentDate).toLocaleDateString()}
-                                                    </span>
+                            {/* Deployment History (view mode only) */}
+                            {!isEditing && detail && (
+                                <Section title="Deployment History">
+                                    {detail.deployments.length === 0 ? (
+                                        <p className="text-xs text-muted-foreground">No deployments recorded.</p>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {detail.deployments.map((d) => (
+                                                <div key={d.id} className="rounded-lg border p-3 text-sm space-y-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="font-medium">{d.customerName}</span>
+                                                        <span className="text-xs text-muted-foreground tabular-nums">
+                                                            {new Date(d.deploymentDate).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                                        <span>
+                                                            Expected return:{" "}
+                                                            {d.expectedReturnDate
+                                                                ? new Date(d.expectedReturnDate).toLocaleDateString()
+                                                                : "TBD"}
+                                                        </span>
+                                                        {d.actualReturnDate && (
+                                                            <Badge variant="active" className="text-[10px]">
+                                                                Returned {new Date(d.actualReturnDate).toLocaleDateString()}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                                    <span>
-                                                        Expected return:{" "}
-                                                        {d.expectedReturnDate
-                                                            ? new Date(d.expectedReturnDate).toLocaleDateString()
-                                                            : "TBD"}
-                                                    </span>
-                                                    {d.actualReturnDate && (
-                                                        <Badge variant="active" className="text-[10px]">
-                                                            Returned {new Date(d.actualReturnDate).toLocaleDateString()}
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </Section>
+                                            ))}
+                                        </div>
+                                    )}
+                                </Section>
+                            )}
 
-                            {/* Timestamps */}
-                            <div className="flex items-center justify-between text-[10px] text-muted-foreground/60 pb-4">
-                                <span>Created {new Date(detail.createdAt).toLocaleDateString()}</span>
-                                <span>Updated {new Date(detail.updatedAt).toLocaleDateString()}</span>
-                            </div>
+                            {/* Save / Cancel footer for edit/create */}
+                            {isEditing && (
+                                <div className="sticky bottom-0 bg-background border-t pt-4 pb-4 flex gap-2">
+                                    <Button onClick={handleSave} disabled={isPending} className="flex-1">
+                                        {isPending ? "Saving..." : sheetMode === "create" ? "Create Asset" : "Save Changes"}
+                                    </Button>
+                                    <Button variant="outline" onClick={sheetMode === "create" ? onClose : handleCancelEdit} disabled={isPending}>
+                                        Cancel
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Timestamps (view mode) */}
+                            {!isEditing && detail && (
+                                <div className="flex items-center justify-between text-[10px] text-muted-foreground/60 pb-4">
+                                    <span>Created {new Date(detail.createdAt).toLocaleDateString()}</span>
+                                    <span>Updated {new Date(detail.updatedAt).toLocaleDateString()}</span>
+                                </div>
+                            )}
                         </div>
                     </>
                 )}
@@ -390,19 +667,22 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     );
 }
 
-function Field({
-    label,
-    value,
-}: {
-    label: string;
-    value: string | null | undefined;
-}) {
+function Field({ label, value }: { label: string; value: string | null | undefined }) {
     return (
         <div className="flex items-center justify-between py-1.5">
             <span className="text-xs text-muted-foreground">{label}</span>
             <span className="text-sm font-medium">
-                {value ?? <span className="text-muted-foreground/40">—</span>}
+                {value ?? <span className="text-muted-foreground/40">&mdash;</span>}
             </span>
+        </div>
+    );
+}
+
+function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div className="space-y-1.5">
+            <Label className="text-xs">{label}</Label>
+            {children}
         </div>
     );
 }

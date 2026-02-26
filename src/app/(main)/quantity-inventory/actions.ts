@@ -2,7 +2,40 @@
 
 import { revalidatePath } from "next/cache";
 import type { ImportResult } from "@/lib/import/types";
+import type { QuantityInventoryListItem } from "@/lib/quantity-inventory/types";
+import {
+    fetchQuantityItemDetail,
+    createQuantityItem,
+    updateQuantityItem,
+} from "@/lib/quantity-inventory/queries";
+import type { QuantityItemCreateInput, QuantityItemUpdateInput } from "@/lib/quantity-inventory/queries";
 import { prisma } from "@/lib/db";
+
+/**
+ * Fetch a single quantity inventory item detail.
+ */
+export async function fetchQuantityItemAction(id: string): Promise<QuantityInventoryListItem | null> {
+    return fetchQuantityItemDetail(id);
+}
+
+/**
+ * Create a new quantity inventory item.
+ */
+export async function createQuantityItemAction(input: QuantityItemCreateInput): Promise<{ id: string }> {
+    const item = await createQuantityItem(input);
+    revalidatePath("/quantity-inventory");
+    revalidatePath("/dashboard");
+    return { id: item.id };
+}
+
+/**
+ * Update an existing quantity inventory item.
+ */
+export async function updateQuantityItemAction(id: string, input: QuantityItemUpdateInput) {
+    await updateQuantityItem(id, input);
+    revalidatePath("/quantity-inventory");
+    revalidatePath("/dashboard");
+}
 
 /**
  * Import quantity inventory items from a spreadsheet.

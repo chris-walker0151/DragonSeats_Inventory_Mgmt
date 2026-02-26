@@ -7,7 +7,10 @@ import {
     deployAsset,
     returnAsset,
     fetchActiveCustomersList,
+    createSerializedAsset,
+    updateSerializedAsset,
 } from "@/lib/serialized-assets/queries";
+import type { AssetCreateInput, AssetUpdateInput } from "@/lib/serialized-assets/queries";
 import type { SerializedAssetDetail } from "@/lib/serialized-assets/types";
 import type { ImportResult } from "@/lib/import/types";
 import { prisma } from "@/lib/db";
@@ -55,6 +58,27 @@ export async function returnAssetAction(input: {
  */
 export async function fetchActiveCustomersAction() {
     return fetchActiveCustomersList();
+}
+
+/**
+ * Create a new serialized asset.
+ */
+export async function createAssetAction(input: AssetCreateInput): Promise<{ id: string }> {
+    const asset = await createSerializedAsset(input);
+    revalidatePath("/serialized-assets");
+    revalidatePath("/maintenance");
+    revalidatePath("/dashboard");
+    return { id: asset.id };
+}
+
+/**
+ * Update an existing serialized asset.
+ */
+export async function updateAssetAction(id: string, input: AssetUpdateInput) {
+    await updateSerializedAsset(id, input);
+    revalidatePath("/serialized-assets");
+    revalidatePath("/maintenance");
+    revalidatePath("/dashboard");
 }
 
 /**

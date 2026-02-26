@@ -4,8 +4,37 @@
  */
 
 import { prisma } from "@/lib/db";
-import type { WarehouseLocation } from "@/generated/prisma/client";
+import type {
+    WarehouseLocation,
+    ProductCategory,
+    LifecycleStatus,
+    BrandingStatus,
+} from "@/generated/prisma/client";
 import type { SerializedAssetListItem, SerializedAssetDetail } from "./types";
+
+export interface AssetCreateInput {
+    serialNumber: string;
+    productCategory: ProductCategory;
+    currentLocation: WarehouseLocation;
+    lifecycleStatus?: LifecycleStatus;
+    productTypeModel?: string | null;
+    customerId?: string | null;
+    manufacturer?: string | null;
+    yearManufactured?: number | null;
+    notes?: string | null;
+    benchType?: string | null;
+    flangeOrDiffuser?: string | null;
+    wheelType?: string | null;
+    brandingStatus?: BrandingStatus | null;
+    brandingDescription?: string | null;
+    heaterType?: string | null;
+    btuLevel?: string | null;
+    btuRating?: number | null;
+    amps?: number | null;
+    maintenanceNotes?: string | null;
+}
+
+export type AssetUpdateInput = Partial<Omit<AssetCreateInput, "serialNumber">>;
 
 /**
  * Fetch all serialized assets with customer and SKU info for the list view.
@@ -169,6 +198,20 @@ export async function fetchActiveCustomersList() {
         select: { id: true, teamName: true },
         orderBy: { teamName: "asc" },
     });
+}
+
+/**
+ * Create a new serialized asset.
+ */
+export async function createSerializedAsset(input: AssetCreateInput) {
+    return prisma.serializedAsset.create({ data: input });
+}
+
+/**
+ * Update an existing serialized asset.
+ */
+export async function updateSerializedAsset(id: string, input: AssetUpdateInput) {
+    return prisma.serializedAsset.update({ where: { id }, data: input });
 }
 
 /**

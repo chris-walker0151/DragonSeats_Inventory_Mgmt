@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { fetchCustomerDetail } from "@/lib/customers/queries";
+import { fetchCustomerDetail, createCustomer, updateCustomer } from "@/lib/customers/queries";
+import type { CustomerCreateInput, CustomerUpdateInput } from "@/lib/customers/queries";
 import type { CustomerDetail } from "@/lib/customers/types";
 import type { ImportResult } from "@/lib/import/types";
 import { prisma } from "@/lib/db";
@@ -14,6 +15,25 @@ export async function fetchCustomerDetailAction(
     id: string,
 ): Promise<CustomerDetail | null> {
     return fetchCustomerDetail(id);
+}
+
+/**
+ * Create a new customer.
+ */
+export async function createCustomerAction(input: CustomerCreateInput): Promise<{ id: string }> {
+    const customer = await createCustomer(input);
+    revalidatePath("/customers");
+    revalidatePath("/dashboard");
+    return { id: customer.id };
+}
+
+/**
+ * Update an existing customer.
+ */
+export async function updateCustomerAction(id: string, input: CustomerUpdateInput) {
+    await updateCustomer(id, input);
+    revalidatePath("/customers");
+    revalidatePath("/dashboard");
 }
 
 /**

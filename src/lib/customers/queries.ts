@@ -4,7 +4,25 @@
  */
 
 import { prisma } from "@/lib/db";
+import type { LeagueType, ContractType, CustomerStatus } from "@/generated/prisma/client";
 import type { CustomerListItem, CustomerDetail } from "./types";
+
+export interface CustomerCreateInput {
+    teamName: string;
+    league: LeagueType;
+    organizationLegalName: string;
+    contractType: ContractType;
+    activeStatus?: CustomerStatus;
+    primaryContactName?: string | null;
+    primaryContactEmail?: string | null;
+    primaryContactPhone?: string | null;
+    stadiumName?: string | null;
+    stadiumAddress?: string | null;
+    contractStartDate?: Date | null;
+    contractEndDate?: Date | null;
+}
+
+export type CustomerUpdateInput = Partial<Omit<CustomerCreateInput, "teamName">>;
 
 /**
  * Fetch all customers with count of deployed assets.
@@ -85,4 +103,18 @@ export async function fetchCustomerDetail(
             productTypeModel: a.productTypeModel,
         })),
     };
+}
+
+/**
+ * Create a new customer.
+ */
+export async function createCustomer(input: CustomerCreateInput) {
+    return prisma.customer.create({ data: input });
+}
+
+/**
+ * Update an existing customer.
+ */
+export async function updateCustomer(id: string, input: CustomerUpdateInput) {
+    return prisma.customer.update({ where: { id }, data: input });
 }

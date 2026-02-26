@@ -12,7 +12,8 @@ import { ITEMS_PER_PAGE } from "@/lib/constants";
 import { QUANTITY_INVENTORY_COLUMNS } from "@/lib/import/constants";
 import { importQuantityInventoryAction } from "./actions";
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
+import { Upload, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type QuantityFilters_ = {
     location: string;
@@ -20,12 +21,14 @@ type QuantityFilters_ = {
 };
 
 export function QuantityShell({ items }: { items: QuantityInventoryListItem[] }) {
+    const router = useRouter();
     const { filters, setFilter, search, setSearch } = useFilters<QuantityFilters_>({
         location: "all",
         category: "all",
     });
 
-    const [selectedItem, setSelectedItem] = useState<QuantityInventoryListItem | null>(null);
+    const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+    const [sheetMode, setSheetMode] = useState<"view" | "create">("view");
     const [importOpen, setImportOpen] = useState(false);
 
     const { paginated, page, totalPages, totalFiltered, filtered, setPage } =
@@ -51,12 +54,37 @@ export function QuantityShell({ items }: { items: QuantityInventoryListItem[] })
         (i) => i.quantityOnHand <= i.reorderLevel,
     ).length;
 
+    function handleOpenCreate() {
+        setSelectedItemId(null);
+        setSheetMode("create");
+    }
+
+    function handleSelectItem(item: QuantityInventoryListItem) {
+        setSheetMode("view");
+        setSelectedItemId(item.id);
+    }
+
+    function handleCloseSheet() {
+        setSelectedItemId(null);
+        setSheetMode("view");
+    }
+
+    function handleSaved() {
+        router.refresh();
+    }
+
+    const sheetOpen = selectedItemId !== null || sheetMode === "create";
+
     return (
         <>
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
                     <Upload className="mr-2 h-4 w-4" />
                     Import
+                </Button>
+                <Button size="sm" onClick={handleOpenCreate}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add New
                 </Button>
             </div>
 
@@ -74,7 +102,7 @@ export function QuantityShell({ items }: { items: QuantityInventoryListItem[] })
 
             <QuantityTable
                 items={paginated}
-                onSelect={(item) => setSelectedItem(item)}
+                onSelect={handleSelectItem}
             />
 
             <Pagination
@@ -86,9 +114,11 @@ export function QuantityShell({ items }: { items: QuantityInventoryListItem[] })
             />
 
             <QuantityDetailSheet
-                item={selectedItem}
-                open={selectedItem !== null}
-                onClose={() => setSelectedItem(null)}
+                itemId={selectedItemId}
+                open={sheetOpen}
+                onClose={handleCloseSheet}
+                mode={sheetMode}
+                onSaved={handleSaved}
             />
 
             <ImportDialog
@@ -97,6 +127,7 @@ export function QuantityShell({ items }: { items: QuantityInventoryListItem[] })
                 title="Import Quantity Inventory"
                 description="Upload an Excel or CSV file with inventory data. Existing items will be updated by category, variant, and location."
                 columns={QUANTITY_INVENTORY_COLUMNS}
+                templateFileName="quantity-inventory-template.xlsx"
                 onImport={importQuantityInventoryAction}
             />
         </>

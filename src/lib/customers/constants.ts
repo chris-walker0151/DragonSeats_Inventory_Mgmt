@@ -58,3 +58,8 @@ export const CONTRACT_TYPE_LABELS: Record<ContractType, string> = {
     seasonal_rental: "Seasonal Rental",
     multi_year_lease: "Multi-Year Lease",
 };
+
+export const ALL_CONTRACT_TYPES: ContractType[] = [
+    "seasonal_rental",
+    "multi_year_lease",
+];

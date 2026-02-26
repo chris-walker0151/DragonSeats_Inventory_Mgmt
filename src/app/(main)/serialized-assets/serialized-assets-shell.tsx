@@ -13,7 +13,8 @@ import { ITEMS_PER_PAGE } from "@/lib/constants";
 import { SERIALIZED_ASSET_COLUMNS } from "@/lib/import/constants";
 import { importSerializedAssetsAction } from "./actions";
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
+import { Upload, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type AssetFilters_ = {
     category: string;
@@ -23,6 +24,7 @@ type AssetFilters_ = {
 };
 
 export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListItem[] }) {
+    const router = useRouter();
     const { filters, setFilter, search, setSearch } = useFilters<AssetFilters_>({
         category: "all",
         status: "all",
@@ -31,6 +33,7 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
     });
 
     const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+    const [sheetMode, setSheetMode] = useState<"view" | "create">("view");
     const [importOpen, setImportOpen] = useState(false);
 
     const { paginated, page, totalPages, totalFiltered, setPage } =
@@ -47,12 +50,37 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
             },
         });
 
+    function handleOpenCreate() {
+        setSelectedAssetId(null);
+        setSheetMode("create");
+    }
+
+    function handleSelectAsset(id: string) {
+        setSheetMode("view");
+        setSelectedAssetId(id);
+    }
+
+    function handleCloseSheet() {
+        setSelectedAssetId(null);
+        setSheetMode("view");
+    }
+
+    function handleSaved() {
+        router.refresh();
+    }
+
+    const sheetOpen = selectedAssetId !== null || sheetMode === "create";
+
     return (
         <>
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
                     <Upload className="mr-2 h-4 w-4" />
                     Import
+                </Button>
+                <Button size="sm" onClick={handleOpenCreate}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add New
                 </Button>
             </div>
 
@@ -72,7 +100,7 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
 
             <AssetTable
                 assets={paginated}
-                onSelect={(id) => setSelectedAssetId(id)}
+                onSelect={handleSelectAsset}
             />
 
             <Pagination
@@ -85,8 +113,10 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
 
             <AssetDetailSheet
                 assetId={selectedAssetId}
-                open={selectedAssetId !== null}
-                onClose={() => setSelectedAssetId(null)}
+                open={sheetOpen}
+                onClose={handleCloseSheet}
+                mode={sheetMode}
+                onSaved={handleSaved}
             />
 
             <ImportDialog
@@ -95,6 +125,7 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
                 title="Import Serialized Assets"
                 description="Upload an Excel or CSV file with asset data. Existing assets will be updated by serial number."
                 columns={SERIALIZED_ASSET_COLUMNS}
+                templateFileName="serialized-assets-template.xlsx"
                 onImport={importSerializedAssetsAction}
             />
         </>

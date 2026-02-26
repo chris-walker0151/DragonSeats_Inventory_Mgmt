@@ -19,9 +19,10 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2, Download } from "lucide-react";
 import type { ImportColumnMapping, ImportPreviewRow, ImportResult } from "@/lib/import/types";
 import { parseSpreadsheet, validateAndMapRows, countErrors } from "@/lib/import/parser";
+import { downloadImportTemplate } from "@/lib/import/template";
 
 type Step = "upload" | "preview" | "importing" | "results";
 
@@ -31,6 +32,7 @@ interface ImportDialogProps {
     title: string;
     description: string;
     columns: ImportColumnMapping[];
+    templateFileName: string;
     onImport: (rows: Record<string, unknown>[]) => Promise<ImportResult>;
 }
 
@@ -40,6 +42,7 @@ export function ImportDialog({
     title,
     description,
     columns,
+    templateFileName,
     onImport,
 }: ImportDialogProps) {
     const [step, setStep] = useState<Step>("upload");
@@ -144,6 +147,16 @@ export function ImportDialog({
                                 onChange={handleFileUpload}
                             />
                         </label>
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => downloadImportTemplate(columns, templateFileName)}
+                        >
+                            <Download className="mr-2 h-4 w-4" />
+                            Download Template
+                        </Button>
 
                         <div className="rounded-md bg-muted/50 p-3">
                             <p className="text-xs font-medium mb-1">Expected columns:</p>
