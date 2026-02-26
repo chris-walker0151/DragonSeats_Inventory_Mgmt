@@ -54,6 +54,8 @@ export interface SerializedAssetDetail {
     btuLevel: string | null;
     btuRating: number | null;
     amps: number | null;
+    lastRefurbishedDate: Date | null;
+    maintenanceNotes: string | null;
     createdAt: Date;
     updatedAt: Date;
     customer: { id: string; teamName: string } | null;

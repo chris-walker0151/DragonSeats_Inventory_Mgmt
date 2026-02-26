@@ -11,6 +11,7 @@ import {
     ArrowLeftRight,
     Tag,
     BookOpen,
+    Wrench,
 } from "lucide-react";
 import {
     Sidebar,
@@ -34,6 +35,7 @@ const iconMap = {
     ArrowLeftRight,
     Tag,
     BookOpen,
+    Wrench,
 } as const;
 
 interface NavItem {
@@ -68,6 +70,16 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                 label: "Transfers",
                 href: "/transfers",
                 icon: "ArrowLeftRight",
+            },
+        ],
+    },
+    {
+        label: "Maintenance",
+        items: [
+            {
+                label: "Predictive Maintenance",
+                href: "/maintenance",
+                icon: "Wrench",
             },
         ],
     },

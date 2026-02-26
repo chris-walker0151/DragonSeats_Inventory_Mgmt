@@ -1,14 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { QuantityInventoryListItem, LocationFilter } from "@/lib/quantity-inventory/types";
 import { useFilters, usePaginatedFilter } from "@/hooks";
 import { QuantityFilters } from "./quantity-filters";
 import { QuantityTable } from "./quantity-table";
 import { QuantityDetailSheet } from "./quantity-detail-sheet";
 import { Pagination } from "@/components/shared";
+import { ImportDialog } from "@/components/shared/import-dialog";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
-import { useState } from "react";
+import { QUANTITY_INVENTORY_COLUMNS } from "@/lib/import/constants";
+import { importQuantityInventoryAction } from "./actions";
+import { Button } from "@/components/ui/button";
+import { Upload } from "lucide-react";
 
 type QuantityFilters_ = {
     location: string;
@@ -22,6 +26,7 @@ export function QuantityShell({ items }: { items: QuantityInventoryListItem[] })
     });
 
     const [selectedItem, setSelectedItem] = useState<QuantityInventoryListItem | null>(null);
+    const [importOpen, setImportOpen] = useState(false);
 
     const { paginated, page, totalPages, totalFiltered, filtered, setPage } =
         usePaginatedFilter({
@@ -48,6 +53,13 @@ export function QuantityShell({ items }: { items: QuantityInventoryListItem[] })
 
     return (
         <>
+            <div className="flex justify-end">
+                <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Import
+                </Button>
+            </div>
+
             <QuantityFilters
                 locationFilter={filters.location as LocationFilter}
                 categoryFilter={filters.category}
@@ -77,6 +89,15 @@ export function QuantityShell({ items }: { items: QuantityInventoryListItem[] })
                 item={selectedItem}
                 open={selectedItem !== null}
                 onClose={() => setSelectedItem(null)}
+            />
+
+            <ImportDialog
+                open={importOpen}
+                onClose={() => setImportOpen(false)}
+                title="Import Quantity Inventory"
+                description="Upload an Excel or CSV file with inventory data. Existing items will be updated by category, variant, and location."
+                columns={QUANTITY_INVENTORY_COLUMNS}
+                onImport={importQuantityInventoryAction}
             />
         </>
     );

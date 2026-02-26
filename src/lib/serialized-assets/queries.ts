@@ -4,6 +4,7 @@
  */
 
 import { prisma } from "@/lib/db";
+import type { WarehouseLocation } from "@/generated/prisma/client";
 import type { SerializedAssetListItem, SerializedAssetDetail } from "./types";
 
 /**
@@ -79,6 +80,8 @@ export async function fetchSerializedAssetDetail(
         btuLevel: asset.btuLevel,
         btuRating: asset.btuRating,
         amps: asset.amps,
+        lastRefurbishedDate: asset.lastRefurbishedDate,
+        maintenanceNotes: asset.maintenanceNotes,
         createdAt: asset.createdAt,
         updatedAt: asset.updatedAt,
         customer: asset.customer,
@@ -91,6 +94,81 @@ export async function fetchSerializedAssetDetail(
             customerName: d.customer.teamName,
         })),
     };
+}
+
+/**
+ * Deploy an asset to a customer. Updates asset status/location/customer and creates a deployment record.
+ */
+export async function deployAsset(input: {
+    assetId: string;
+    customerId: string;
+    deploymentDate: string;
+    expectedReturnDate?: string;
+    notes?: string;
+}) {
+    return prisma.$transaction([
+        prisma.serializedAsset.update({
+            where: { id: input.assetId },
+            data: {
+                lifecycleStatus: "deployed_customer",
+                currentLocation: "deployed_customer",
+                customerId: input.customerId,
+            },
+        }),
+        prisma.deployment.create({
+            data: {
+                assetId: input.assetId,
+                customerId: input.customerId,
+                deploymentDate: new Date(input.deploymentDate),
+                expectedReturnDate: input.expectedReturnDate
+                    ? new Date(input.expectedReturnDate)
+                    : null,
+                deploymentNotes: input.notes || null,
+            },
+        }),
+    ]);
+}
+
+/**
+ * Return an asset from a customer. Reverts status/location, clears customer, and sets return date.
+ */
+export async function returnAsset(input: {
+    assetId: string;
+    returnLocation: WarehouseLocation;
+}) {
+    return prisma.$transaction(async (tx) => {
+        await tx.serializedAsset.update({
+            where: { id: input.assetId },
+            data: {
+                lifecycleStatus: "in_warehouse_available",
+                currentLocation: input.returnLocation,
+                customerId: null,
+            },
+        });
+
+        const activeDeployment = await tx.deployment.findFirst({
+            where: { assetId: input.assetId, actualReturnDate: null },
+            orderBy: { deploymentDate: "desc" },
+        });
+
+        if (activeDeployment) {
+            await tx.deployment.update({
+                where: { id: activeDeployment.id },
+                data: { actualReturnDate: new Date() },
+            });
+        }
+    });
+}
+
+/**
+ * Fetch active customers for the deploy dropdown.
+ */
+export async function fetchActiveCustomersList() {
+    return prisma.customer.findMany({
+        where: { activeStatus: "active" },
+        select: { id: true, teamName: true },
+        orderBy: { teamName: "asc" },
+    });
 }
 
 /**

@@ -8,7 +8,12 @@ import { CustomerFilters } from "./customer-filters";
 import { CustomerTable } from "./customer-table";
 import { CustomerDetailSheet } from "./customer-detail-sheet";
 import { Pagination } from "@/components/shared";
+import { ImportDialog } from "@/components/shared/import-dialog";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
+import { CUSTOMER_COLUMNS } from "@/lib/import/constants";
+import { importCustomersAction } from "./actions";
+import { Button } from "@/components/ui/button";
+import { Upload } from "lucide-react";
 
 type CustomerFilters_ = {
     league: string;
@@ -22,6 +27,7 @@ export function CustomersShell({ customers }: { customers: CustomerListItem[] })
     });
 
     const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+    const [importOpen, setImportOpen] = useState(false);
 
     const { paginated, page, totalPages, totalFiltered, setPage } =
         usePaginatedFilter({
@@ -37,6 +43,13 @@ export function CustomersShell({ customers }: { customers: CustomerListItem[] })
 
     return (
         <>
+            <div className="flex justify-end">
+                <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Import
+                </Button>
+            </div>
+
             <CustomerFilters
                 leagueFilter={filters.league as LeagueFilter}
                 statusFilter={filters.status as StatusFilter}
@@ -64,6 +77,15 @@ export function CustomersShell({ customers }: { customers: CustomerListItem[] })
                 customerId={selectedCustomerId}
                 open={selectedCustomerId !== null}
                 onClose={() => setSelectedCustomerId(null)}
+            />
+
+            <ImportDialog
+                open={importOpen}
+                onClose={() => setImportOpen(false)}
+                title="Import Customers"
+                description="Upload an Excel or CSV file with customer data. Existing customers will be updated by team name."
+                columns={CUSTOMER_COLUMNS}
+                onImport={importCustomersAction}
             />
         </>
     );

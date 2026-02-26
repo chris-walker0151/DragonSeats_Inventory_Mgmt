@@ -9,6 +9,16 @@ import {
     SheetDescription,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -19,9 +29,16 @@ import {
     BRANDING_STATUS_LABELS,
     BRANDING_STATUS_COLORS,
 } from "@/lib/serialized-assets/constants";
+import { WAREHOUSES } from "@/lib/constants";
 import type { SerializedAssetDetail } from "@/lib/serialized-assets/types";
-import { fetchAssetDetail } from "./actions";
+import {
+    fetchAssetDetail,
+    deployAssetAction,
+    returnAssetAction,
+    fetchActiveCustomersAction,
+} from "./actions";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface AssetDetailSheetProps {
     assetId: string | null;
@@ -33,6 +50,18 @@ export function AssetDetailSheet({ assetId, open, onClose }: AssetDetailSheetPro
     const [detail, setDetail] = useState<SerializedAssetDetail | null>(null);
     const [isPending, startTransition] = useTransition();
 
+    // Deploy form state
+    const [showDeployForm, setShowDeployForm] = useState(false);
+    const [customers, setCustomers] = useState<{ id: string; teamName: string }[]>([]);
+    const [deployCustomerId, setDeployCustomerId] = useState("");
+    const [deployDate, setDeployDate] = useState(() => new Date().toISOString().slice(0, 10));
+    const [deployExpectedReturn, setDeployExpectedReturn] = useState("");
+    const [deployNotes, setDeployNotes] = useState("");
+
+    // Return form state
+    const [showReturnForm, setShowReturnForm] = useState(false);
+    const [returnLocation, setReturnLocation] = useState("");
+
     useEffect(() => {
         if (assetId) {
             startTransition(async () => {
@@ -43,7 +72,58 @@ export function AssetDetailSheet({ assetId, open, onClose }: AssetDetailSheetPro
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setDetail(null);
         }
+        setShowDeployForm(false);
+        setShowReturnForm(false);
     }, [assetId]);
+
+    const canDeploy = detail && (
+        detail.lifecycleStatus === "in_warehouse_available" ||
+        detail.lifecycleStatus === "in_warehouse_reserved"
+    );
+    const canReturn = detail?.lifecycleStatus === "deployed_customer";
+
+    function handleOpenDeployForm() {
+        startTransition(async () => {
+            const list = await fetchActiveCustomersAction();
+            setCustomers(list);
+            setShowDeployForm(true);
+            setDeployCustomerId("");
+            setDeployDate(new Date().toISOString().slice(0, 10));
+            setDeployExpectedReturn("");
+            setDeployNotes("");
+        });
+    }
+
+    function handleDeploy() {
+        if (!detail || !deployCustomerId || !deployDate) return;
+        startTransition(async () => {
+            await deployAssetAction({
+                assetId: detail.id,
+                customerId: deployCustomerId,
+                deploymentDate: deployDate,
+                expectedReturnDate: deployExpectedReturn || undefined,
+                notes: deployNotes || undefined,
+            });
+            toast.success("Asset deployed successfully");
+            const refreshed = await fetchAssetDetail(detail.id);
+            setDetail(refreshed);
+            setShowDeployForm(false);
+        });
+    }
+
+    function handleReturn() {
+        if (!detail || !returnLocation) return;
+        startTransition(async () => {
+            await returnAssetAction({
+                assetId: detail.id,
+                returnLocation: returnLocation as "cleveland_warehouse" | "kansas_city_warehouse" | "jacksonville_warehouse",
+            });
+            toast.success("Asset returned successfully");
+            const refreshed = await fetchAssetDetail(detail.id);
+            setDetail(refreshed);
+            setShowReturnForm(false);
+        });
+    }
 
     return (
         <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
@@ -81,6 +161,126 @@ export function AssetDetailSheet({ assetId, open, onClose }: AssetDetailSheetPro
                                 <Field label="Manufacturer" value={detail.manufacturer} />
                                 <Field label="Year Manufactured" value={detail.yearManufactured?.toString()} />
                             </Section>
+
+                            {/* Deploy / Return Actions */}
+                            {canDeploy && !showDeployForm && (
+                                <Button
+                                    onClick={handleOpenDeployForm}
+                                    className="w-full"
+                                    disabled={isPending}
+                                >
+                                    Deploy to Customer
+                                </Button>
+                            )}
+
+                            {showDeployForm && (
+                                <Section title="Deploy to Customer">
+                                    <div className="space-y-3">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Customer</Label>
+                                            <Select value={deployCustomerId} onValueChange={setDeployCustomerId}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select customer..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {customers.map((c) => (
+                                                        <SelectItem key={c.id} value={c.id}>
+                                                            {c.teamName}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Deployment Date</Label>
+                                            <Input
+                                                type="date"
+                                                value={deployDate}
+                                                onChange={(e) => setDeployDate(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Expected Return Date</Label>
+                                            <Input
+                                                type="date"
+                                                value={deployExpectedReturn}
+                                                onChange={(e) => setDeployExpectedReturn(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Notes</Label>
+                                            <Input
+                                                value={deployNotes}
+                                                onChange={(e) => setDeployNotes(e.target.value)}
+                                                placeholder="Deployment notes..."
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={handleDeploy}
+                                                disabled={!deployCustomerId || !deployDate || isPending}
+                                                className="flex-1"
+                                            >
+                                                {isPending ? "Deploying..." : "Confirm Deploy"}
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => setShowDeployForm(false)}
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </Section>
+                            )}
+
+                            {canReturn && !showReturnForm && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setShowReturnForm(true)}
+                                    className="w-full"
+                                    disabled={isPending}
+                                >
+                                    Return from Customer
+                                </Button>
+                            )}
+
+                            {showReturnForm && (
+                                <Section title="Return to Warehouse">
+                                    <div className="space-y-3">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Return Location</Label>
+                                            <Select value={returnLocation} onValueChange={setReturnLocation}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select warehouse..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {WAREHOUSES.map((wh) => (
+                                                        <SelectItem key={wh.location} value={wh.location}>
+                                                            {wh.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={handleReturn}
+                                                disabled={!returnLocation || isPending}
+                                                className="flex-1"
+                                            >
+                                                {isPending ? "Returning..." : "Confirm Return"}
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => setShowReturnForm(false)}
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </Section>
+                            )}
 
                             {/* Category-specific fields */}
                             {detail.productCategory === "bench" && (

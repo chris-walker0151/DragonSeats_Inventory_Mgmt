@@ -144,6 +144,10 @@ model SerializedAsset {
     btuRating Int? @map("btu_rating")
     amps      Int? @map("amps")
 
+    // Maintenance fields
+    lastRefurbishedDate DateTime? @map("last_refurbished_date") @db.Date
+    maintenanceNotes    String?   @map("maintenance_notes")
+
     createdAt DateTime @default(now()) @map("created_at")
     updatedAt DateTime @updatedAt @map("updated_at")
 

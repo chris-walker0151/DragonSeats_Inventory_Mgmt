@@ -103,7 +103,13 @@ export function AssetTable({ assets, onSelect }: AssetTableProps) {
                             </Badge>
                         </TableCell>
                         <TableCell className="text-sm">
-                            {asset.customerName ?? (
+                            {asset.lifecycleStatus === "deployed_customer" && asset.customerName ? (
+                                <Badge className={cn("text-[10px]", LIFECYCLE_STATUS_COLORS["deployed_customer"])}>
+                                    {asset.customerName}
+                                </Badge>
+                            ) : asset.customerName ? (
+                                asset.customerName
+                            ) : (
                                 <span className="text-muted-foreground/40">—</span>
                             )}
                         </TableCell>

@@ -8,7 +8,12 @@ import { AssetFilters } from "./asset-filters";
 import { AssetTable } from "./asset-table";
 import { AssetDetailSheet } from "./asset-detail-sheet";
 import { Pagination } from "@/components/shared";
+import { ImportDialog } from "@/components/shared/import-dialog";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
+import { SERIALIZED_ASSET_COLUMNS } from "@/lib/import/constants";
+import { importSerializedAssetsAction } from "./actions";
+import { Button } from "@/components/ui/button";
+import { Upload } from "lucide-react";
 
 type AssetFilters_ = {
     category: string;
@@ -26,6 +31,7 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
     });
 
     const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+    const [importOpen, setImportOpen] = useState(false);
 
     const { paginated, page, totalPages, totalFiltered, setPage } =
         usePaginatedFilter({
@@ -43,6 +49,13 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
 
     return (
         <>
+            <div className="flex justify-end">
+                <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Import
+                </Button>
+            </div>
+
             <AssetFilters
                 categoryFilter={filters.category as CategoryFilter}
                 statusFilter={filters.status as StatusFilter}
@@ -74,6 +87,15 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
                 assetId={selectedAssetId}
                 open={selectedAssetId !== null}
                 onClose={() => setSelectedAssetId(null)}
+            />
+
+            <ImportDialog
+                open={importOpen}
+                onClose={() => setImportOpen(false)}
+                title="Import Serialized Assets"
+                description="Upload an Excel or CSV file with asset data. Existing assets will be updated by serial number."
+                columns={SERIALIZED_ASSET_COLUMNS}
+                onImport={importSerializedAssetsAction}
             />
         </>
     );
