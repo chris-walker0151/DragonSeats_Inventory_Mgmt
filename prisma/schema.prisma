@@ -136,6 +136,19 @@ model SerializedAsset {
     brandingType        BrandingType?   @map("branding_type")
     brandingDescription String?         @map("branding_description")
 
+    // Extended bench fields (from Dragon Seats inventory sheet)
+    condition           String?
+    benchStatus         String?         @map("bench_status")
+    manifoldStyle       String?         @map("manifold_style")
+    deckType            String?         @map("deck_type")
+    seatType            String?         @map("seat_type")
+    compressorHoles     String?         @map("compressor_holes")
+    acHoles             String?         @map("ac_holes")
+    dsPlateNumber       String?         @map("ds_plate_number")
+    deployedLocationName String?        @map("deployed_location_name")
+    teamAllocated2024   String?         @map("team_allocated_2024")
+    teamAllocated2025   String?         @map("team_allocated_2025")
+
     // Heater-specific fields
     heaterType String? @map("heater_type")
     btuLevel   String? @map("btu_level")

@@ -81,9 +81,34 @@ export async function updateAssetAction(id: string, input: AssetUpdateInput) {
     revalidatePath("/dashboard");
 }
 
+/** Map a free-text location string to a warehouse enum + deployed location name. */
+function resolveLocation(raw: unknown): {
+    currentLocation: "cleveland_warehouse" | "kansas_city_warehouse" | "jacksonville_warehouse" | "deployed_customer";
+    lifecycleStatus: "in_warehouse_available" | "deployed_customer";
+    deployedLocationName: string | null;
+} {
+    const loc = String(raw ?? "").trim().toLowerCase();
+    if (loc.includes("cleveland")) {
+        return { currentLocation: "cleveland_warehouse", lifecycleStatus: "in_warehouse_available", deployedLocationName: null };
+    }
+    if (loc.includes("kansas")) {
+        return { currentLocation: "kansas_city_warehouse", lifecycleStatus: "in_warehouse_available", deployedLocationName: null };
+    }
+    if (loc.includes("jacksonville")) {
+        return { currentLocation: "jacksonville_warehouse", lifecycleStatus: "in_warehouse_available", deployedLocationName: null };
+    }
+    // Any other location is treated as deployed
+    return {
+        currentLocation: "deployed_customer",
+        lifecycleStatus: "deployed_customer",
+        deployedLocationName: String(raw ?? "").trim() || null,
+    };
+}
+
 /**
  * Import serialized assets from a spreadsheet.
- * Upserts by serialNumber. Resolves customerName → customerId and SKU code → skuId.
+ * Upserts by serialNumber (Asset Number). Maps free-text Warehouse Location
+ * to currentLocation enum + deployedLocationName.
  */
 export async function importSerializedAssetsAction(
     rows: Record<string, unknown>[],
@@ -93,63 +118,38 @@ export async function importSerializedAssetsAction(
     let skipped = 0;
     const errors: ImportResult["errors"] = [];
 
-    // Pre-fetch customer and SKU lookups
-    const customers = await prisma.customer.findMany({ select: { id: true, teamName: true } });
-    const customerMap = new Map(customers.map((c) => [c.teamName.toLowerCase(), c.id]));
-
-    const skus = await prisma.skuMaster.findMany({ select: { id: true, sku: true } });
-    const skuMap = new Map(skus.map((s) => [s.sku.toLowerCase(), s.id]));
-
     for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         try {
             const serialNumber = String(row.serialNumber ?? "").trim();
             if (!serialNumber) {
-                errors.push({ row: i + 1, column: "Serial Number", message: "Missing serial number" });
+                errors.push({ row: i + 1, column: "Asset Number", message: "Missing asset number" });
                 skipped++;
                 continue;
             }
 
-            // Resolve customer name to ID
-            let customerId: string | null = null;
-            if (row.customerName) {
-                const key = String(row.customerName).toLowerCase().trim();
-                customerId = customerMap.get(key) ?? null;
-            }
-
-            // Resolve SKU code to ID
-            let skuId: string | null = null;
-            if (row.skuCode) {
-                const key = String(row.skuCode).toLowerCase().trim();
-                skuId = skuMap.get(key) ?? null;
-            }
+            const { currentLocation, lifecycleStatus, deployedLocationName } =
+                resolveLocation(row.warehouseLocation);
 
             const data = {
-                productCategory: String(row.productCategory ?? "bench").toLowerCase().trim() as never,
-                productTypeModel: row.productTypeModel ? String(row.productTypeModel) : null,
-                lifecycleStatus: row.lifecycleStatus
-                    ? (String(row.lifecycleStatus).toLowerCase().trim() as never)
-                    : ("in_warehouse_available" as never),
-                currentLocation: String(row.currentLocation ?? "cleveland_warehouse").toLowerCase().trim() as never,
-                customerId,
-                skuId,
-                yearManufactured: row.yearManufactured ? Number(row.yearManufactured) : null,
-                manufacturer: row.manufacturer ? String(row.manufacturer) : null,
-                notes: row.notes ? String(row.notes) : null,
-                benchType: row.benchType ? String(row.benchType) : null,
-                flangeOrDiffuser: row.flangeOrDiffuser ? String(row.flangeOrDiffuser) : null,
-                wheelType: row.wheelType ? String(row.wheelType) : null,
-                brandingStatus: row.brandingStatus
-                    ? (String(row.brandingStatus).toLowerCase().trim() as never)
-                    : null,
-                heaterType: row.heaterType ? String(row.heaterType) : null,
-                btuLevel: row.btuLevel ? String(row.btuLevel) : null,
-                btuRating: row.btuRating ? Number(row.btuRating) : null,
-                amps: row.amps ? Number(row.amps) : null,
-                maintenanceNotes: row.maintenanceNotes ? String(row.maintenanceNotes) : null,
-                lastRefurbishedDate: row.lastRefurbishedDate
-                    ? new Date(String(row.lastRefurbishedDate))
-                    : null,
+                productCategory: "bench" as never,
+                productTypeModel: row.productTypeModel ? String(row.productTypeModel).trim() : null,
+                lifecycleStatus: lifecycleStatus as never,
+                currentLocation: currentLocation as never,
+                deployedLocationName,
+                manufacturer: row.manufacturer ? String(row.manufacturer).trim() : null,
+                dsPlateNumber: row.dsPlateNumber ? String(row.dsPlateNumber).trim() : null,
+                condition: row.condition ? String(row.condition).trim() : null,
+                benchStatus: row.benchStatus ? String(row.benchStatus).trim() : null,
+                manifoldStyle: row.manifoldStyle ? String(row.manifoldStyle).trim() : null,
+                deckType: row.deckType ? String(row.deckType).trim() : null,
+                seatType: row.seatType ? String(row.seatType).trim() : null,
+                wheelType: row.wheelType ? String(row.wheelType).trim() : null,
+                compressorHoles: row.compressorHoles ? String(row.compressorHoles).trim() : null,
+                acHoles: row.acHoles ? String(row.acHoles).trim() : null,
+                notes: row.notes ? String(row.notes).trim() : null,
+                teamAllocated2024: row.teamAllocated2024 ? String(row.teamAllocated2024).trim() : null,
+                teamAllocated2025: row.teamAllocated2025 ? String(row.teamAllocated2025).trim() : null,
             };
 
             const existing = await prisma.serializedAsset.findFirst({

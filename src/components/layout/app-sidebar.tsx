@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -109,9 +110,13 @@ export function AppSidebar() {
         <Sidebar>
             <SidebarHeader className="border-b border-sidebar-border px-4 py-3">
                 <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                        <Package className="h-4 w-4" />
-                    </div>
+                    <Image
+                        src="/dragon-seats-logo.svg"
+                        alt="Dragon Seats"
+                        width={36}
+                        height={36}
+                        className="shrink-0"
+                    />
                     <div>
                         <p className="text-sm font-bold tracking-tight">
                             Dragon Seats

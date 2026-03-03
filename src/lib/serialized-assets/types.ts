@@ -11,10 +11,7 @@ import type {
     BrandingType,
 } from "@/generated/prisma/client";
 
-export type CategoryFilter = ProductCategory | "all";
-export type StatusFilter = LifecycleStatus | "all";
 export type LocationFilter = WarehouseLocation | "all";
-export type BrandingFilter = BrandingStatus | "all";
 
 export interface SerializedAssetListItem {
     id: string;
@@ -27,6 +24,14 @@ export interface SerializedAssetListItem {
     brandingStatus: BrandingStatus | null;
     brandingDescription: string | null;
     skuCode: string | null;
+    manufacturer: string | null;
+    condition: string | null;
+    benchStatus: string | null;
+    manifoldStyle: string | null;
+    deckType: string | null;
+    seatType: string | null;
+    wheelType: string | null;
+    deployedLocationName: string | null;
 }
 
 export interface SerializedAssetDetail {
@@ -50,6 +55,17 @@ export interface SerializedAssetDetail {
     brandingStatus: BrandingStatus | null;
     brandingType: BrandingType | null;
     brandingDescription: string | null;
+    condition: string | null;
+    benchStatus: string | null;
+    manifoldStyle: string | null;
+    deckType: string | null;
+    seatType: string | null;
+    compressorHoles: string | null;
+    acHoles: string | null;
+    dsPlateNumber: string | null;
+    deployedLocationName: string | null;
+    teamAllocated2024: string | null;
+    teamAllocated2025: string | null;
     heaterType: string | null;
     btuLevel: string | null;
     btuRating: number | null;

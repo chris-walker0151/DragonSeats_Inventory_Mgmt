@@ -27,6 +27,17 @@ export interface AssetCreateInput {
     wheelType?: string | null;
     brandingStatus?: BrandingStatus | null;
     brandingDescription?: string | null;
+    condition?: string | null;
+    benchStatus?: string | null;
+    manifoldStyle?: string | null;
+    deckType?: string | null;
+    seatType?: string | null;
+    compressorHoles?: string | null;
+    acHoles?: string | null;
+    dsPlateNumber?: string | null;
+    deployedLocationName?: string | null;
+    teamAllocated2024?: string | null;
+    teamAllocated2025?: string | null;
     heaterType?: string | null;
     btuLevel?: string | null;
     btuRating?: number | null;
@@ -59,6 +70,14 @@ export async function fetchSerializedAssetsList(): Promise<SerializedAssetListIt
         brandingStatus: a.brandingStatus,
         brandingDescription: a.brandingDescription,
         skuCode: a.sku?.sku ?? null,
+        manufacturer: a.manufacturer,
+        condition: a.condition,
+        benchStatus: a.benchStatus,
+        manifoldStyle: a.manifoldStyle,
+        deckType: a.deckType,
+        seatType: a.seatType,
+        wheelType: a.wheelType,
+        deployedLocationName: a.deployedLocationName,
     }));
 }
 
@@ -105,6 +124,17 @@ export async function fetchSerializedAssetDetail(
         brandingStatus: asset.brandingStatus,
         brandingType: asset.brandingType,
         brandingDescription: asset.brandingDescription,
+        condition: asset.condition,
+        benchStatus: asset.benchStatus,
+        manifoldStyle: asset.manifoldStyle,
+        deckType: asset.deckType,
+        seatType: asset.seatType,
+        compressorHoles: asset.compressorHoles,
+        acHoles: asset.acHoles,
+        dsPlateNumber: asset.dsPlateNumber,
+        deployedLocationName: asset.deployedLocationName,
+        teamAllocated2024: asset.teamAllocated2024,
+        teamAllocated2025: asset.teamAllocated2025,
         heaterType: asset.heaterType,
         btuLevel: asset.btuLevel,
         btuRating: asset.btuRating,

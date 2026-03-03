@@ -72,6 +72,17 @@ interface AssetFormData {
     wheelType: string;
     brandingStatus: string;
     brandingDescription: string;
+    condition: string;
+    benchStatus: string;
+    manifoldStyle: string;
+    deckType: string;
+    seatType: string;
+    compressorHoles: string;
+    acHoles: string;
+    dsPlateNumber: string;
+    deployedLocationName: string;
+    teamAllocated2024: string;
+    teamAllocated2025: string;
     heaterType: string;
     btuLevel: string;
     btuRating: string;
@@ -94,6 +105,17 @@ const EMPTY_FORM: AssetFormData = {
     wheelType: "",
     brandingStatus: "",
     brandingDescription: "",
+    condition: "",
+    benchStatus: "",
+    manifoldStyle: "",
+    deckType: "",
+    seatType: "",
+    compressorHoles: "",
+    acHoles: "",
+    dsPlateNumber: "",
+    deployedLocationName: "",
+    teamAllocated2024: "",
+    teamAllocated2025: "",
     heaterType: "",
     btuLevel: "",
     btuRating: "",
@@ -117,6 +139,17 @@ function detailToForm(detail: SerializedAssetDetail): AssetFormData {
         wheelType: detail.wheelType ?? "",
         brandingStatus: detail.brandingStatus ?? "",
         brandingDescription: detail.brandingDescription ?? "",
+        condition: detail.condition ?? "",
+        benchStatus: detail.benchStatus ?? "",
+        manifoldStyle: detail.manifoldStyle ?? "",
+        deckType: detail.deckType ?? "",
+        seatType: detail.seatType ?? "",
+        compressorHoles: detail.compressorHoles ?? "",
+        acHoles: detail.acHoles ?? "",
+        dsPlateNumber: detail.dsPlateNumber ?? "",
+        deployedLocationName: detail.deployedLocationName ?? "",
+        teamAllocated2024: detail.teamAllocated2024 ?? "",
+        teamAllocated2025: detail.teamAllocated2025 ?? "",
         heaterType: detail.heaterType ?? "",
         btuLevel: detail.btuLevel ?? "",
         btuRating: detail.btuRating?.toString() ?? "",
@@ -211,6 +244,17 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                 wheelType: formData.wheelType || null,
                 brandingStatus: (formData.brandingStatus || null) as BrandingStatus | null,
                 brandingDescription: formData.brandingDescription || null,
+                condition: formData.condition || null,
+                benchStatus: formData.benchStatus || null,
+                manifoldStyle: formData.manifoldStyle || null,
+                deckType: formData.deckType || null,
+                seatType: formData.seatType || null,
+                compressorHoles: formData.compressorHoles || null,
+                acHoles: formData.acHoles || null,
+                dsPlateNumber: formData.dsPlateNumber || null,
+                deployedLocationName: formData.deployedLocationName || null,
+                teamAllocated2024: formData.teamAllocated2024 || null,
+                teamAllocated2025: formData.teamAllocated2025 || null,
                 heaterType: formData.heaterType || null,
                 btuLevel: formData.btuLevel || null,
                 btuRating: formData.btuRating ? Number(formData.btuRating) : null,
@@ -401,12 +445,15 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                                     </div>
                                 ) : (
                                     <>
-                                        <Field label="SKU" value={detail!.sku?.sku} />
-                                        <Field label="Location" value={WAREHOUSE_LOCATION_LABELS[detail!.currentLocation]} />
-                                        <Field label="Customer" value={detail!.customer?.teamName} />
-                                        <Field label="Date Acquired" value={detail!.dateAcquired ? new Date(detail!.dateAcquired).toLocaleDateString() : null} />
-                                        <Field label="Responsible" value={detail!.responsiblePerson} />
+                                        <Field label="Asset Type" value={detail!.productTypeModel} />
                                         <Field label="Manufacturer" value={detail!.manufacturer} />
+                                        <Field label="Location" value={
+                                            detail!.currentLocation === "deployed_customer" && detail!.deployedLocationName
+                                                ? `Deployed — ${detail!.deployedLocationName}`
+                                                : WAREHOUSE_LOCATION_LABELS[detail!.currentLocation]
+                                        } />
+                                        <Field label="Customer" value={detail!.customer?.teamName} />
+                                        <Field label="SKU" value={detail!.sku?.sku} />
                                         <Field label="Year Manufactured" value={detail!.yearManufactured?.toString()} />
                                     </>
                                 )}
@@ -487,47 +534,69 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
 
                             {/* Category-specific fields */}
                             {cat === "bench" && (
-                                <Section title="Bench Details">
+                                <Section title="Bench Specifications">
                                     {isEditing ? (
                                         <div className="space-y-3">
-                                            <FormField label="Bench Type">
-                                                <Input value={formData.benchType} onChange={(e) => updateField("benchType", e.target.value)} />
+                                            <FormField label="Condition">
+                                                <Input value={formData.condition} onChange={(e) => updateField("condition", e.target.value)} />
                                             </FormField>
-                                            <FormField label="Flange/Diffuser">
-                                                <Input value={formData.flangeOrDiffuser} onChange={(e) => updateField("flangeOrDiffuser", e.target.value)} />
+                                            <FormField label="Status">
+                                                <Input value={formData.benchStatus} onChange={(e) => updateField("benchStatus", e.target.value)} />
                                             </FormField>
-                                            <FormField label="Wheel Type">
+                                            <FormField label="DS Plate Number">
+                                                <Input value={formData.dsPlateNumber} onChange={(e) => updateField("dsPlateNumber", e.target.value)} />
+                                            </FormField>
+                                            <FormField label="Manifold Style">
+                                                <Input value={formData.manifoldStyle} onChange={(e) => updateField("manifoldStyle", e.target.value)} />
+                                            </FormField>
+                                            <FormField label="Deck Type">
+                                                <Input value={formData.deckType} onChange={(e) => updateField("deckType", e.target.value)} />
+                                            </FormField>
+                                            <FormField label="Seat Type">
+                                                <Input value={formData.seatType} onChange={(e) => updateField("seatType", e.target.value)} />
+                                            </FormField>
+                                            <FormField label="Wheel Style">
                                                 <Input value={formData.wheelType} onChange={(e) => updateField("wheelType", e.target.value)} />
                                             </FormField>
-                                            <FormField label="Branding Status">
-                                                <Select value={formData.brandingStatus || "none"} onValueChange={(v) => updateField("brandingStatus", v === "none" ? "" : v)}>
-                                                    <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="none">None</SelectItem>
-                                                        <SelectItem value="unbranded">Unbranded</SelectItem>
-                                                        <SelectItem value="branded">Branded</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
+                                            <FormField label="Compressor Holes">
+                                                <Input value={formData.compressorHoles} onChange={(e) => updateField("compressorHoles", e.target.value)} />
                                             </FormField>
-                                            <FormField label="Branding Description">
-                                                <Input value={formData.brandingDescription} onChange={(e) => updateField("brandingDescription", e.target.value)} />
+                                            <FormField label="AC Holes">
+                                                <Input value={formData.acHoles} onChange={(e) => updateField("acHoles", e.target.value)} />
                                             </FormField>
                                         </div>
                                     ) : (
                                         <>
-                                            <Field label="Bench Type" value={detail!.benchType} />
-                                            <Field label="Flange/Diffuser" value={detail!.flangeOrDiffuser} />
-                                            <Field label="Wheel Type" value={detail!.wheelType} />
-                                            <Field label="Vent Holes" value={detail!.ventHoles != null ? (detail!.ventHoles ? "Yes" : "No") : null} />
-                                            {detail!.brandingStatus && (
-                                                <div className="flex items-center justify-between py-1.5">
-                                                    <span className="text-xs text-muted-foreground">Branding</span>
-                                                    <Badge className={cn("text-[10px]", BRANDING_STATUS_COLORS[detail!.brandingStatus])}>
-                                                        {BRANDING_STATUS_LABELS[detail!.brandingStatus]}
-                                                    </Badge>
-                                                </div>
-                                            )}
-                                            <Field label="Branding Desc" value={detail!.brandingDescription} />
+                                            <Field label="Condition" value={detail!.condition} />
+                                            <Field label="Status" value={detail!.benchStatus} />
+                                            <Field label="DS Plate #" value={detail!.dsPlateNumber} />
+                                            <Field label="Manifold Style" value={detail!.manifoldStyle} />
+                                            <Field label="Deck Type" value={detail!.deckType} />
+                                            <Field label="Seat Type" value={detail!.seatType} />
+                                            <Field label="Wheel Style" value={detail!.wheelType} />
+                                            <Field label="Compressor Holes" value={detail!.compressorHoles} />
+                                            <Field label="AC Holes" value={detail!.acHoles} />
+                                        </>
+                                    )}
+                                </Section>
+                            )}
+
+                            {/* Team Allocations (bench only) */}
+                            {cat === "bench" && (
+                                <Section title="Team Allocations">
+                                    {isEditing ? (
+                                        <div className="space-y-3">
+                                            <FormField label="Team Allocated 2024">
+                                                <Input value={formData.teamAllocated2024} onChange={(e) => updateField("teamAllocated2024", e.target.value)} />
+                                            </FormField>
+                                            <FormField label="Team Allocated 2025">
+                                                <Input value={formData.teamAllocated2025} onChange={(e) => updateField("teamAllocated2025", e.target.value)} />
+                                            </FormField>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Field label="2024 Allocation" value={detail!.teamAllocated2024} />
+                                            <Field label="2025 Allocation" value={detail!.teamAllocated2025} />
                                         </>
                                     )}
                                 </Section>

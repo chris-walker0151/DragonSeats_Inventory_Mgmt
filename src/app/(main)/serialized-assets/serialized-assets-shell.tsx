@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { SerializedAssetListItem } from "@/lib/serialized-assets/types";
-import type { CategoryFilter, StatusFilter, LocationFilter, BrandingFilter } from "@/lib/serialized-assets/types";
+import type { LocationFilter } from "@/lib/serialized-assets/types";
 import { useFilters, usePaginatedFilter } from "@/hooks";
 import { AssetFilters } from "./asset-filters";
+import type { FilterOptions } from "./asset-filters";
 import { AssetTable } from "./asset-table";
 import { AssetDetailSheet } from "./asset-detail-sheet";
 import { Pagination } from "@/components/shared";
@@ -17,36 +18,71 @@ import { Upload, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type AssetFilters_ = {
-    category: string;
-    status: string;
     location: string;
-    branding: string;
+    manufacturer: string;
+    condition: string;
+    benchStatus: string;
+    manifoldStyle: string;
+    deckType: string;
+    seatType: string;
+    wheelType: string;
 };
+
+/** Extract unique non-null values from a field, sorted alphabetically. */
+function uniqueSorted<T>(items: T[], field: keyof T): string[] {
+    const set = new Set<string>();
+    for (const item of items) {
+        const val = item[field];
+        if (val != null && String(val).trim() !== "") {
+            set.add(String(val));
+        }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+}
 
 export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListItem[] }) {
     const router = useRouter();
     const { filters, setFilter, search, setSearch } = useFilters<AssetFilters_>({
-        category: "all",
-        status: "all",
         location: "all",
-        branding: "all",
+        manufacturer: "all",
+        condition: "all",
+        benchStatus: "all",
+        manifoldStyle: "all",
+        deckType: "all",
+        seatType: "all",
+        wheelType: "all",
     });
 
     const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
     const [sheetMode, setSheetMode] = useState<"view" | "create">("view");
     const [importOpen, setImportOpen] = useState(false);
 
+    // Compute dynamic filter options from the full asset list
+    const filterOptions: FilterOptions = useMemo(() => ({
+        manufacturer: uniqueSorted(assets, "manufacturer"),
+        condition: uniqueSorted(assets, "condition"),
+        benchStatus: uniqueSorted(assets, "benchStatus"),
+        manifoldStyle: uniqueSorted(assets, "manifoldStyle"),
+        deckType: uniqueSorted(assets, "deckType"),
+        seatType: uniqueSorted(assets, "seatType"),
+        wheelType: uniqueSorted(assets, "wheelType"),
+    }), [assets]);
+
     const { paginated, page, totalPages, totalFiltered, setPage } =
         usePaginatedFilter({
             items: assets,
             filters,
             searchQuery: search,
-            searchFields: ["serialNumber", "productTypeModel", "customerName", "skuCode"],
+            searchFields: ["serialNumber", "productTypeModel", "manufacturer", "benchStatus", "manifoldStyle", "deckType", "seatType", "wheelType", "deployedLocationName"],
             filterPredicates: {
-                category: (item, val) => item.productCategory === val,
-                status: (item, val) => item.lifecycleStatus === val,
                 location: (item, val) => item.currentLocation === val,
-                branding: (item, val) => item.brandingStatus === val,
+                manufacturer: (item, val) => item.manufacturer === val,
+                condition: (item, val) => item.condition === val,
+                benchStatus: (item, val) => item.benchStatus === val,
+                manifoldStyle: (item, val) => item.manifoldStyle === val,
+                deckType: (item, val) => item.deckType === val,
+                seatType: (item, val) => item.seatType === val,
+                wheelType: (item, val) => item.wheelType === val,
             },
         });
 
@@ -85,15 +121,24 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
             </div>
 
             <AssetFilters
-                categoryFilter={filters.category as CategoryFilter}
-                statusFilter={filters.status as StatusFilter}
                 locationFilter={filters.location as LocationFilter}
-                brandingFilter={filters.branding as BrandingFilter}
+                manufacturerFilter={filters.manufacturer}
+                conditionFilter={filters.condition}
+                benchStatusFilter={filters.benchStatus}
+                manifoldStyleFilter={filters.manifoldStyle}
+                deckTypeFilter={filters.deckType}
+                seatTypeFilter={filters.seatType}
+                wheelTypeFilter={filters.wheelType}
                 search={search}
-                onCategoryChange={(v) => setFilter("category", v)}
-                onStatusChange={(v) => setFilter("status", v)}
+                filterOptions={filterOptions}
                 onLocationChange={(v) => setFilter("location", v)}
-                onBrandingChange={(v) => setFilter("branding", v)}
+                onManufacturerChange={(v) => setFilter("manufacturer", v)}
+                onConditionChange={(v) => setFilter("condition", v)}
+                onBenchStatusChange={(v) => setFilter("benchStatus", v)}
+                onManifoldStyleChange={(v) => setFilter("manifoldStyle", v)}
+                onDeckTypeChange={(v) => setFilter("deckType", v)}
+                onSeatTypeChange={(v) => setFilter("seatType", v)}
+                onWheelTypeChange={(v) => setFilter("wheelType", v)}
                 onSearchChange={setSearch}
                 resultCount={totalFiltered}
             />

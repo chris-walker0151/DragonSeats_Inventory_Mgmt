@@ -10,14 +10,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
-    PRODUCT_CATEGORY_LABELS,
-    PRODUCT_CATEGORY_COLORS,
-    LIFECYCLE_STATUS_LABELS,
-    LIFECYCLE_STATUS_COLORS,
     WAREHOUSE_LOCATION_LABELS,
     WAREHOUSE_LOCATION_COLORS,
-    BRANDING_STATUS_LABELS,
-    BRANDING_STATUS_COLORS,
+    CONDITION_COLORS,
 } from "@/lib/serialized-assets/constants";
 import type { SerializedAssetListItem } from "@/lib/serialized-assets/types";
 import { cn } from "@/lib/utils";
@@ -25,6 +20,13 @@ import { cn } from "@/lib/utils";
 interface AssetTableProps {
     assets: SerializedAssetListItem[];
     onSelect: (id: string) => void;
+}
+
+function locationDisplay(asset: SerializedAssetListItem): string {
+    if (asset.currentLocation === "deployed_customer" && asset.deployedLocationName) {
+        return asset.deployedLocationName;
+    }
+    return WAREHOUSE_LOCATION_LABELS[asset.currentLocation];
 }
 
 export function AssetTable({ assets, onSelect }: AssetTableProps) {
@@ -37,102 +39,87 @@ export function AssetTable({ assets, onSelect }: AssetTableProps) {
     }
 
     return (
-        <Table>
-            <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                    <TableHead>Serial #</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Model</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Branding</TableHead>
-                    <TableHead>SKU</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {assets.map((asset) => (
-                    <TableRow
-                        key={asset.id}
-                        className="cursor-pointer"
-                        tabIndex={0}
-                        role="button"
-                        aria-label={`View details for asset ${asset.serialNumber}`}
-                        onClick={() => onSelect(asset.id)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault();
-                                onSelect(asset.id);
-                            }
-                        }}
-                    >
-                        <TableCell className="font-mono text-xs font-medium">
-                            {asset.serialNumber}
-                        </TableCell>
-                        <TableCell>
-                            <Badge
-                                className={cn(
-                                    "text-[10px]",
-                                    PRODUCT_CATEGORY_COLORS[asset.productCategory],
-                                )}
-                            >
-                                {PRODUCT_CATEGORY_LABELS[asset.productCategory]}
-                            </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                            {asset.productTypeModel ?? "—"}
-                        </TableCell>
-                        <TableCell>
-                            <Badge
-                                className={cn(
-                                    "text-[10px]",
-                                    LIFECYCLE_STATUS_COLORS[asset.lifecycleStatus],
-                                )}
-                            >
-                                {LIFECYCLE_STATUS_LABELS[asset.lifecycleStatus]}
-                            </Badge>
-                        </TableCell>
-                        <TableCell>
-                            <Badge
-                                className={cn(
-                                    "text-[10px]",
-                                    WAREHOUSE_LOCATION_COLORS[asset.currentLocation],
-                                )}
-                            >
-                                {WAREHOUSE_LOCATION_LABELS[asset.currentLocation]}
-                            </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                            {asset.lifecycleStatus === "deployed_customer" && asset.customerName ? (
-                                <Badge className={cn("text-[10px]", LIFECYCLE_STATUS_COLORS["deployed_customer"])}>
-                                    {asset.customerName}
-                                </Badge>
-                            ) : asset.customerName ? (
-                                asset.customerName
-                            ) : (
-                                <span className="text-muted-foreground/40">—</span>
-                            )}
-                        </TableCell>
-                        <TableCell>
-                            {asset.brandingStatus ? (
+        <div className="overflow-x-auto">
+            <Table>
+                <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                        <TableHead className="whitespace-nowrap">Asset #</TableHead>
+                        <TableHead className="whitespace-nowrap">Asset Type</TableHead>
+                        <TableHead className="whitespace-nowrap">Manufacturer</TableHead>
+                        <TableHead className="whitespace-nowrap">Condition</TableHead>
+                        <TableHead className="whitespace-nowrap">Status</TableHead>
+                        <TableHead className="whitespace-nowrap">Location</TableHead>
+                        <TableHead className="whitespace-nowrap">Manifold</TableHead>
+                        <TableHead className="whitespace-nowrap">Deck Type</TableHead>
+                        <TableHead className="whitespace-nowrap">Seat Type</TableHead>
+                        <TableHead className="whitespace-nowrap">Wheels</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {assets.map((asset) => (
+                        <TableRow
+                            key={asset.id}
+                            className="cursor-pointer"
+                            tabIndex={0}
+                            role="button"
+                            aria-label={`View details for asset ${asset.serialNumber}`}
+                            onClick={() => onSelect(asset.id)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    onSelect(asset.id);
+                                }
+                            }}
+                        >
+                            <TableCell className="font-mono text-xs font-medium whitespace-nowrap">
+                                {asset.serialNumber}
+                            </TableCell>
+                            <TableCell className="text-sm whitespace-nowrap">
+                                {asset.productTypeModel ?? <Dash />}
+                            </TableCell>
+                            <TableCell className="text-sm whitespace-nowrap">
+                                {asset.manufacturer ?? <Dash />}
+                            </TableCell>
+                            <TableCell>
+                                {asset.condition ? (
+                                    <Badge className={cn("text-[10px]", CONDITION_COLORS[asset.condition] ?? "bg-gray-800 text-gray-300")}>
+                                        {asset.condition}
+                                    </Badge>
+                                ) : <Dash />}
+                            </TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">
+                                {asset.benchStatus ?? <Dash />}
+                            </TableCell>
+                            <TableCell>
                                 <Badge
                                     className={cn(
-                                        "text-[10px]",
-                                        BRANDING_STATUS_COLORS[asset.brandingStatus],
+                                        "text-[10px] whitespace-nowrap",
+                                        WAREHOUSE_LOCATION_COLORS[asset.currentLocation],
                                     )}
                                 >
-                                    {BRANDING_STATUS_LABELS[asset.brandingStatus]}
+                                    {locationDisplay(asset)}
                                 </Badge>
-                            ) : (
-                                <span className="text-muted-foreground/40">—</span>
-                            )}
-                        </TableCell>
-                        <TableCell className="font-mono text-[10px] text-muted-foreground">
-                            {asset.skuCode ?? "—"}
-                        </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
+                            </TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">
+                                {asset.manifoldStyle ?? <Dash />}
+                            </TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">
+                                {asset.deckType ?? <Dash />}
+                            </TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">
+                                {asset.seatType ?? <Dash />}
+                            </TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">
+                                {asset.wheelType ?? <Dash />}
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
     );
+}
+
+function Dash() {
+    return <span className="text-muted-foreground/40">&mdash;</span>;
 }

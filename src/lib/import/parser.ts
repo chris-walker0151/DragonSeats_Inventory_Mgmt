@@ -3,13 +3,10 @@
 import * as XLSX from "xlsx";
 import type { ImportColumnMapping, ImportPreviewRow, ImportValidationError } from "./types";
 import {
-    validateProductCategory,
-    validateLifecycleStatus,
     validateWarehouseLocation,
     validateLeagueType,
     validateContractType,
     validateCustomerStatus,
-    validateBrandingStatus,
 } from "./validators";
 
 /**
@@ -39,14 +36,10 @@ export function parseSpreadsheet(file: File): Promise<Record<string, unknown>[]>
 
 // Map of targetField to validator function for enum fields
 const ENUM_VALIDATORS: Record<string, (value: unknown) => string | null> = {
-    productCategory: validateProductCategory,
-    lifecycleStatus: validateLifecycleStatus,
-    currentLocation: validateWarehouseLocation,
     location: validateWarehouseLocation,
     league: validateLeagueType,
     contractType: validateContractType,
     activeStatus: validateCustomerStatus,
-    brandingStatus: validateBrandingStatus,
 };
 
 /**
@@ -90,9 +83,6 @@ export function validateAndMapRows(
             // Number validation for numeric fields
             if (value !== null && value !== undefined) {
                 if (
-                    col.targetField === "yearManufactured" ||
-                    col.targetField === "btuRating" ||
-                    col.targetField === "amps" ||
                     col.targetField === "quantityOnHand" ||
                     col.targetField === "reorderLevel"
                 ) {

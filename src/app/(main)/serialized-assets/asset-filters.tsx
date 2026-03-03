@@ -9,49 +9,64 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {
-    PRODUCT_CATEGORY_LABELS,
-    LIFECYCLE_STATUS_LABELS,
     WAREHOUSE_LOCATION_LABELS,
-    BRANDING_STATUS_LABELS,
-    ALL_PRODUCT_CATEGORIES,
-    ALL_LIFECYCLE_STATUSES,
     ALL_WAREHOUSE_LOCATIONS,
 } from "@/lib/serialized-assets/constants";
-import type {
-    CategoryFilter,
-    StatusFilter,
-    LocationFilter,
-    BrandingFilter,
-} from "@/lib/serialized-assets/types";
-import type { BrandingStatus } from "@/generated/prisma/client";
+import type { LocationFilter } from "@/lib/serialized-assets/types";
 import { Search } from "lucide-react";
 
-const ALL_BRANDING_STATUSES: BrandingStatus[] = ["unbranded", "branded"];
+export interface FilterOptions {
+    manufacturer: string[];
+    condition: string[];
+    benchStatus: string[];
+    manifoldStyle: string[];
+    deckType: string[];
+    seatType: string[];
+    wheelType: string[];
+}
 
 interface AssetFiltersProps {
-    categoryFilter: CategoryFilter;
-    statusFilter: StatusFilter;
     locationFilter: LocationFilter;
-    brandingFilter: BrandingFilter;
+    manufacturerFilter: string;
+    conditionFilter: string;
+    benchStatusFilter: string;
+    manifoldStyleFilter: string;
+    deckTypeFilter: string;
+    seatTypeFilter: string;
+    wheelTypeFilter: string;
     search: string;
-    onCategoryChange: (v: CategoryFilter) => void;
-    onStatusChange: (v: StatusFilter) => void;
+    filterOptions: FilterOptions;
     onLocationChange: (v: LocationFilter) => void;
-    onBrandingChange: (v: BrandingFilter) => void;
+    onManufacturerChange: (v: string) => void;
+    onConditionChange: (v: string) => void;
+    onBenchStatusChange: (v: string) => void;
+    onManifoldStyleChange: (v: string) => void;
+    onDeckTypeChange: (v: string) => void;
+    onSeatTypeChange: (v: string) => void;
+    onWheelTypeChange: (v: string) => void;
     onSearchChange: (v: string) => void;
     resultCount: number;
 }
 
 export function AssetFilters({
-    categoryFilter,
-    statusFilter,
     locationFilter,
-    brandingFilter,
+    manufacturerFilter,
+    conditionFilter,
+    benchStatusFilter,
+    manifoldStyleFilter,
+    deckTypeFilter,
+    seatTypeFilter,
+    wheelTypeFilter,
     search,
-    onCategoryChange,
-    onStatusChange,
+    filterOptions,
     onLocationChange,
-    onBrandingChange,
+    onManufacturerChange,
+    onConditionChange,
+    onBenchStatusChange,
+    onManifoldStyleChange,
+    onDeckTypeChange,
+    onSeatTypeChange,
+    onWheelTypeChange,
     onSearchChange,
     resultCount,
 }: AssetFiltersProps) {
@@ -62,49 +77,13 @@ export function AssetFilters({
                 <div className="relative w-full sm:w-64">
                     <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                        placeholder="Search serial #, model, customer..."
+                        placeholder="Search asset #, type, manufacturer..."
                         value={search}
                         onChange={(e) => onSearchChange(e.target.value)}
                         className="pl-9"
                         aria-label="Search assets"
                     />
                 </div>
-
-                {/* Category */}
-                <Select
-                    value={categoryFilter}
-                    onValueChange={(v) => onCategoryChange(v as CategoryFilter)}
-                >
-                    <SelectTrigger size="sm">
-                        <SelectValue placeholder="Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        {ALL_PRODUCT_CATEGORIES.map((cat) => (
-                            <SelectItem key={cat} value={cat}>
-                                {PRODUCT_CATEGORY_LABELS[cat]}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-
-                {/* Status */}
-                <Select
-                    value={statusFilter}
-                    onValueChange={(v) => onStatusChange(v as StatusFilter)}
-                >
-                    <SelectTrigger size="sm">
-                        <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        {ALL_LIFECYCLE_STATUSES.map((s) => (
-                            <SelectItem key={s} value={s}>
-                                {LIFECYCLE_STATUS_LABELS[s]}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
 
                 {/* Location */}
                 <Select
@@ -124,20 +103,93 @@ export function AssetFilters({
                     </SelectContent>
                 </Select>
 
-                {/* Branding */}
-                <Select
-                    value={brandingFilter}
-                    onValueChange={(v) => onBrandingChange(v as BrandingFilter)}
-                >
+                {/* Manufacturer */}
+                <Select value={manufacturerFilter} onValueChange={onManufacturerChange}>
                     <SelectTrigger size="sm">
-                        <SelectValue placeholder="Branding" />
+                        <SelectValue placeholder="Manufacturer" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Branding</SelectItem>
-                        {ALL_BRANDING_STATUSES.map((b) => (
-                            <SelectItem key={b} value={b}>
-                                {BRANDING_STATUS_LABELS[b]}
-                            </SelectItem>
+                        <SelectItem value="all">All Manufacturers</SelectItem>
+                        {filterOptions.manufacturer.map((v) => (
+                            <SelectItem key={v} value={v}>{v}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                {/* Condition */}
+                <Select value={conditionFilter} onValueChange={onConditionChange}>
+                    <SelectTrigger size="sm">
+                        <SelectValue placeholder="Condition" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Conditions</SelectItem>
+                        {filterOptions.condition.map((v) => (
+                            <SelectItem key={v} value={v}>{v}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                {/* Bench Status */}
+                <Select value={benchStatusFilter} onValueChange={onBenchStatusChange}>
+                    <SelectTrigger size="sm">
+                        <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        {filterOptions.benchStatus.map((v) => (
+                            <SelectItem key={v} value={v}>{v}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                {/* Manifold Style */}
+                <Select value={manifoldStyleFilter} onValueChange={onManifoldStyleChange}>
+                    <SelectTrigger size="sm">
+                        <SelectValue placeholder="Manifold" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Manifolds</SelectItem>
+                        {filterOptions.manifoldStyle.map((v) => (
+                            <SelectItem key={v} value={v}>{v}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                {/* Deck Type */}
+                <Select value={deckTypeFilter} onValueChange={onDeckTypeChange}>
+                    <SelectTrigger size="sm">
+                        <SelectValue placeholder="Deck Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Deck Types</SelectItem>
+                        {filterOptions.deckType.map((v) => (
+                            <SelectItem key={v} value={v}>{v}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                {/* Seat Type */}
+                <Select value={seatTypeFilter} onValueChange={onSeatTypeChange}>
+                    <SelectTrigger size="sm">
+                        <SelectValue placeholder="Seat Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Seat Types</SelectItem>
+                        {filterOptions.seatType.map((v) => (
+                            <SelectItem key={v} value={v}>{v}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                {/* Wheel Type */}
+                <Select value={wheelTypeFilter} onValueChange={onWheelTypeChange}>
+                    <SelectTrigger size="sm">
+                        <SelectValue placeholder="Wheels" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Wheel Types</SelectItem>
+                        {filterOptions.wheelType.map((v) => (
+                            <SelectItem key={v} value={v}>{v}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>

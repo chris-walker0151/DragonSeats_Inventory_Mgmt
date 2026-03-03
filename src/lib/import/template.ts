@@ -3,33 +3,37 @@
 import * as XLSX from "xlsx";
 import type { ImportColumnMapping } from "./types";
 import {
-    VALID_PRODUCT_CATEGORIES,
-    VALID_LIFECYCLE_STATUSES,
     VALID_WAREHOUSE_LOCATIONS,
     VALID_LEAGUE_TYPES,
     VALID_CONTRACT_TYPES,
     VALID_CUSTOMER_STATUSES,
-    VALID_BRANDING_STATUSES,
 } from "./validators";
 
 /** Map targetField → hint string for the hints row. */
 const FIELD_HINTS: Record<string, string> = {
-    serialNumber: "REQUIRED. Unique identifier",
-    productCategory: `REQUIRED. ${[...VALID_PRODUCT_CATEGORIES].join(" | ")}`,
-    lifecycleStatus: `${[...VALID_LIFECYCLE_STATUSES].join(" | ")}`,
-    currentLocation: `REQUIRED. ${[...VALID_WAREHOUSE_LOCATIONS].join(" | ")}`,
-    customerName: "Customer team name (must match existing customer)",
-    yearManufactured: "Number, e.g. 2023",
-    skuCode: "SKU code (must match existing SKU)",
-    brandingStatus: `${[...VALID_BRANDING_STATUSES].join(" | ")}`,
-    btuRating: "Number",
-    amps: "Number",
-    lastRefurbishedDate: "Date, e.g. 2024-06-15",
+    // Serialized assets
+    serialNumber: "REQUIRED. e.g. BEN-001",
+    productTypeModel: "e.g. DS Bench, DS Mini Bench",
+    manufacturer: "e.g. SND, CMM, ZRC, MFG",
+    dsPlateNumber: "DS plate identifier",
+    condition: "e.g. Excellent, New Build, Poor",
+    benchStatus: "e.g. NEED INPUT, Checked Out, Ready",
+    warehouseLocation: "REQUIRED. e.g. Cleveland, Kansas City, Jacksonville, or deployed location name",
+    manifoldStyle: "e.g. Sandy New, Original, Short Manifold",
+    deckType: "e.g. OG Deck, Redesign, Mini Bench",
+    seatType: "e.g. Standard, New Design, Mini Bench",
+    wheelType: "e.g. New Wheels, Original, Mini Bench",
+    compressorHoles: "e.g. Yes, No",
+    acHoles: "e.g. Yes, No",
+    teamAllocated2024: "Team name for 2024 season",
+    teamAllocated2025: "Team name for 2025 season",
+    // Customers
     teamName: "REQUIRED. Unique team name",
     league: `REQUIRED. ${[...VALID_LEAGUE_TYPES].join(" | ")}`,
     organizationLegalName: "REQUIRED. Legal entity name",
     contractType: `REQUIRED. ${[...VALID_CONTRACT_TYPES].join(" | ")}`,
     activeStatus: `${[...VALID_CUSTOMER_STATUSES].join(" | ")}`,
+    // Quantity inventory
     itemCategory: "REQUIRED. e.g. Fasteners, Tubing",
     location: `REQUIRED. ${[...VALID_WAREHOUSE_LOCATIONS].join(" | ")}`,
     quantityOnHand: "REQUIRED. Number",
