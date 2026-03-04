@@ -8,6 +8,7 @@ frontend:
         - npx prisma migrate deploy || echo "Migration skipped (tables may already exist)"
     build:
       commands:
+        - export NODE_OPTIONS="--max-old-space-size=4096"
         - npm run build
   artifacts:
     baseDirectory: .next
