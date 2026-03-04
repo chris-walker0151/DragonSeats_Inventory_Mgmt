@@ -109,7 +109,7 @@ model Customer {
     serializedAssets SerializedAsset[]
     deployments      Deployment[]
 
-    @@map("customers")
+    @@map("inventory_customers")
 }
 
 model SerializedAsset {
