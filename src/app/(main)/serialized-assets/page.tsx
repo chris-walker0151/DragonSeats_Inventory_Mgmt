@@ -1,6 +1,7 @@
 import { fetchSerializedAssetsList } from "@/lib/serialized-assets/queries";
 import { SerializedAssetsShell } from "./serialized-assets-shell";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Dragon Seats — Serialized Assets" };
 
 export default async function SerializedAssetsPage() {

@@ -1,6 +1,7 @@
 import { fetchCustomersList } from "@/lib/customers/queries";
 import { CustomersShell } from "./customers-shell";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Dragon Seats — Customers" };
 
 export default async function CustomersPage() {

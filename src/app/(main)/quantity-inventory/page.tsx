@@ -1,6 +1,7 @@
 import { fetchQuantityInventoryList } from "@/lib/quantity-inventory/queries";
 import { QuantityShell } from "./quantity-shell";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Dragon Seats — Quantity Inventory" };
 
 export default async function QuantityInventoryPage() {

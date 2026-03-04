@@ -1,6 +1,7 @@
 import { fetchDeploymentsList } from "@/lib/deployments/queries";
 import { DeploymentsShell } from "./deployments-shell";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Dragon Seats — Deployments" };
 
 export default async function DeploymentsPage() {

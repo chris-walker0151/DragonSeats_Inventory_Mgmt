@@ -1,6 +1,7 @@
 import { fetchMaintenanceList } from "@/lib/maintenance/queries";
 import { MaintenanceShell } from "./maintenance-shell";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Dragon Seats — Predictive Maintenance" };
 
 export default async function MaintenancePage() {

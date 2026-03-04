@@ -1,6 +1,7 @@
 import { fetchSkuList } from "@/lib/sku-master/queries";
 import { SkuMasterShell } from "./sku-master-shell";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Dragon Seats — SKU Master" };
 
 export default async function SkuMasterPage() {

@@ -9,6 +9,7 @@ import { LocationSummaryCard } from "./location-summary-card";
 import { BrandingSummaryCard } from "./branding-summary-card";
 import { DashboardSkeleton } from "./loading";
 
+export const dynamic = "force-dynamic";
 export const metadata = {
     title: "Dragon Seats — Dashboard",
 };

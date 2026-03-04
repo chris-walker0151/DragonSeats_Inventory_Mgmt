@@ -1,6 +1,7 @@
 import { fetchTransfersList } from "@/lib/transfers/queries";
 import { TransfersShell } from "./transfers-shell";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Dragon Seats — Transfers" };
 
 export default async function TransfersPage() {
