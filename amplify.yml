@@ -5,6 +5,7 @@ frontend:
       commands:
         - npm ci
         - npx prisma generate
+        - '[ -n "$DATABASE_URL" ] && echo "✓ DATABASE_URL is set" || echo "✗ DATABASE_URL is NOT set"'
     build:
       commands:
         - export NODE_OPTIONS="--max-old-space-size=4096"
