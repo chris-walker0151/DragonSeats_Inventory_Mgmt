@@ -15,6 +15,13 @@ import type { SerializedAssetDetail } from "@/lib/serialized-assets/types";
 import type { ImportResult } from "@/lib/import/types";
 import { prisma } from "@/lib/db";
 
+/* ── Valid enum values for import validation ── */
+const VALID_PRODUCT_CATEGORIES = new Set(["bench", "heater", "ac_unit", "compressor", "cooling_tower", "shader", "hot_box"]);
+const VALID_LIFECYCLE_STATUSES = new Set(["ordered", "in_warehouse_available", "in_warehouse_reserved", "deployed_customer", "retired"]);
+const VALID_WAREHOUSE_LOCATIONS = new Set(["cleveland_warehouse", "kansas_city_warehouse", "jacksonville_warehouse", "deployed_customer"]);
+const VALID_BRANDING_STATUSES = new Set(["unbranded", "branded"]);
+const VALID_BRANDING_TYPES = new Set(["team", "one_off_event", "other"]);
+
 /**
  * Server action to fetch a single serialized asset detail.
  */
@@ -128,15 +135,53 @@ export async function importSerializedAssetsAction(
                 continue;
             }
 
+            const productCategory = row.productCategory
+                ? String(row.productCategory).toLowerCase().trim()
+                : "bench";
+            if (!VALID_PRODUCT_CATEGORIES.has(productCategory)) {
+                errors.push({ row: i + 1, column: "productCategory", message: `Invalid product category: "${productCategory}". Valid: ${[...VALID_PRODUCT_CATEGORIES].join(", ")}` });
+                skipped++;
+                continue;
+            }
+
             const { currentLocation, lifecycleStatus, deployedLocationName } =
                 resolveLocation(row.warehouseLocation);
 
+            if (!VALID_LIFECYCLE_STATUSES.has(lifecycleStatus)) {
+                errors.push({ row: i + 1, column: "lifecycleStatus", message: `Invalid lifecycle status: "${lifecycleStatus}". Valid: ${[...VALID_LIFECYCLE_STATUSES].join(", ")}` });
+                skipped++;
+                continue;
+            }
+
+            if (!VALID_WAREHOUSE_LOCATIONS.has(currentLocation)) {
+                errors.push({ row: i + 1, column: "currentLocation", message: `Invalid warehouse location: "${currentLocation}". Valid: ${[...VALID_WAREHOUSE_LOCATIONS].join(", ")}` });
+                skipped++;
+                continue;
+            }
+
+            // Optional branding fields — set to null if invalid rather than skipping the row
+            const rawBrandingStatus = row.brandingStatus
+                ? String(row.brandingStatus).toLowerCase().trim()
+                : null;
+            const brandingStatus = rawBrandingStatus && VALID_BRANDING_STATUSES.has(rawBrandingStatus)
+                ? rawBrandingStatus
+                : null;
+
+            const rawBrandingType = row.brandingType
+                ? String(row.brandingType).toLowerCase().trim()
+                : null;
+            const brandingType = rawBrandingType && VALID_BRANDING_TYPES.has(rawBrandingType)
+                ? rawBrandingType
+                : null;
+
             const data = {
-                productCategory: "bench" as never,
+                productCategory: productCategory as never,
                 productTypeModel: row.productTypeModel ? String(row.productTypeModel).trim() : null,
                 lifecycleStatus: lifecycleStatus as never,
                 currentLocation: currentLocation as never,
                 deployedLocationName,
+                brandingStatus: brandingStatus as never,
+                brandingType: brandingType as never,
                 manufacturer: row.manufacturer ? String(row.manufacturer).trim() : null,
                 dsPlateNumber: row.dsPlateNumber ? String(row.dsPlateNumber).trim() : null,
                 condition: row.condition ? String(row.condition).trim() : null,
@@ -152,20 +197,20 @@ export async function importSerializedAssetsAction(
                 teamAllocated2025: row.teamAllocated2025 ? String(row.teamAllocated2025).trim() : null,
             };
 
-            const existing = await prisma.serializedAsset.findFirst({
+            const before = await prisma.serializedAsset.findUnique({
                 where: { serialNumber },
+                select: { id: true },
             });
 
-            if (existing) {
-                await prisma.serializedAsset.update({
-                    where: { id: existing.id },
-                    data,
-                });
+            await prisma.serializedAsset.upsert({
+                where: { serialNumber },
+                update: { ...data },
+                create: { serialNumber, ...data },
+            });
+
+            if (before) {
                 updated++;
             } else {
-                await prisma.serializedAsset.create({
-                    data: { serialNumber, ...data },
-                });
                 created++;
             }
         } catch (err) {

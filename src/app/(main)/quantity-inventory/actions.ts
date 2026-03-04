@@ -11,6 +11,9 @@ import {
 import type { QuantityItemCreateInput, QuantityItemUpdateInput } from "@/lib/quantity-inventory/queries";
 import { prisma } from "@/lib/db";
 
+/* ── Valid enum values for import validation ── */
+const VALID_WAREHOUSE_LOCATIONS = new Set(["cleveland_warehouse", "kansas_city_warehouse", "jacksonville_warehouse", "deployed_customer"]);
+
 /**
  * Fetch a single quantity inventory item detail.
  */
@@ -65,33 +68,49 @@ export async function importQuantityInventoryAction(
                 continue;
             }
 
+            if (!VALID_WAREHOUSE_LOCATIONS.has(location)) {
+                errors.push({ row: i + 1, column: "location", message: `Invalid location: "${location}". Valid: ${[...VALID_WAREHOUSE_LOCATIONS].join(", ")}` });
+                skipped++;
+                continue;
+            }
+
             const itemVariant = row.itemVariant ? String(row.itemVariant).trim() : null;
 
-            const data = {
-                location: location as never,
-                quantityOnHand: row.quantityOnHand ? Number(row.quantityOnHand) : 0,
-                reorderLevel: row.reorderLevel ? Number(row.reorderLevel) : 0,
-                responsiblePerson: row.responsiblePerson ? String(row.responsiblePerson) : null,
+            const quantityOnHand = row.quantityOnHand ? Number(row.quantityOnHand) : 0;
+            const reorderLevel = row.reorderLevel ? Number(row.reorderLevel) : 0;
+            const responsiblePerson = row.responsiblePerson ? String(row.responsiblePerson) : null;
+            const lastCountDate = row.lastCountDate ? new Date(String(row.lastCountDate)) : null;
+
+            const uniqueKey = {
+                itemCategory_itemVariant_location: {
+                    itemCategory,
+                    itemVariant: itemVariant ?? "",
+                    location: location as never,
+                },
             };
 
-            const existing = await prisma.quantityInventory.findFirst({
-                where: {
+            const before = await prisma.quantityInventory.findUnique({
+                where: uniqueKey,
+                select: { id: true },
+            });
+
+            await prisma.quantityInventory.upsert({
+                where: uniqueKey,
+                update: { quantityOnHand, reorderLevel, lastCountDate, responsiblePerson },
+                create: {
                     itemCategory,
-                    itemVariant: itemVariant ?? undefined,
+                    itemVariant,
                     location: location as never,
+                    quantityOnHand,
+                    reorderLevel,
+                    lastCountDate,
+                    responsiblePerson,
                 },
             });
 
-            if (existing) {
-                await prisma.quantityInventory.update({
-                    where: { id: existing.id },
-                    data,
-                });
+            if (before) {
                 updated++;
             } else {
-                await prisma.quantityInventory.create({
-                    data: { itemCategory, itemVariant, ...data },
-                });
                 created++;
             }
         } catch (err) {

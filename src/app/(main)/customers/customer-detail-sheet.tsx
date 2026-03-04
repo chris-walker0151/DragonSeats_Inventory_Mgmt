@@ -129,9 +129,13 @@ export function CustomerDetailSheet({ customerId, open, onClose, mode: initialMo
     useEffect(() => {
         if (initialMode !== "create" && customerId) {
             startTransition(async () => {
-                const data = await fetchCustomerDetailAction(customerId);
-                setDetail(data);
-                if (data) setFormData(detailToForm(data));
+                try {
+                    const data = await fetchCustomerDetailAction(customerId);
+                    setDetail(data);
+                    if (data) setFormData(detailToForm(data));
+                } catch {
+                    toast.error("Failed to load customer details");
+                }
             });
         }
     }, [customerId, initialMode]);

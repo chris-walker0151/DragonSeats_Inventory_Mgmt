@@ -42,15 +42,19 @@ export function MaintenanceDetailSheet({ assetId, open, onClose }: MaintenanceDe
     useEffect(() => {
         if (assetId) {
             startTransition(async () => {
-                const data = await fetchMaintenanceDetailAction(assetId);
-                setDetail(data);
-                if (data) {
-                    setMaintNotes(data.maintenanceNotes ?? "");
-                    setLastRefurbDate(
-                        data.lastRefurbishedDate
-                            ? new Date(data.lastRefurbishedDate).toISOString().slice(0, 10)
-                            : "",
-                    );
+                try {
+                    const data = await fetchMaintenanceDetailAction(assetId);
+                    setDetail(data);
+                    if (data) {
+                        setMaintNotes(data.maintenanceNotes ?? "");
+                        setLastRefurbDate(
+                            data.lastRefurbishedDate
+                                ? new Date(data.lastRefurbishedDate).toISOString().slice(0, 10)
+                                : "",
+                        );
+                    }
+                } catch {
+                    toast.error("Failed to load maintenance details");
                 }
             });
         } else {
