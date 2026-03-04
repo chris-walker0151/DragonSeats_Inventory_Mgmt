@@ -6,7 +6,12 @@ function createPrismaClient() {
     if (!connectionString) {
         throw new Error("DATABASE_URL environment variable is not set");
     }
-    const adapter = new PrismaPg({ connectionString });
+    // Enable SSL for non-localhost connections (required by Supabase pooler)
+    const isRemote = !connectionString.includes("localhost");
+    const adapter = new PrismaPg({
+        connectionString,
+        ssl: isRemote ? { rejectUnauthorized: false } : undefined,
+    });
     return new PrismaClient({ adapter });
 }
 
