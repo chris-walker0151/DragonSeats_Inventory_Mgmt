@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import type { SerializedAssetListItem } from "@/lib/serialized-assets/types";
 import type { LocationFilter } from "@/lib/serialized-assets/types";
 import { useFilters, usePaginatedFilter } from "@/hooks";
@@ -118,10 +118,15 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
         router.refresh();
     }
 
-    // Clear selection when filters or page change
-    useEffect(() => {
-        setSelectedIds(new Set());
-    }, [filters, search, page]);
+    // Derive valid selection: only keep IDs that are on the current page
+    const paginatedIds = useMemo(() => new Set(paginated.map((a) => a.id)), [paginated]);
+    const validSelectedIds = useMemo(() => {
+        const valid = new Set<string>();
+        for (const id of selectedIds) {
+            if (paginatedIds.has(id)) valid.add(id);
+        }
+        return valid;
+    }, [selectedIds, paginatedIds]);
 
     const handleToggleSelect = useCallback((id: string) => {
         setSelectedIds((prev) => {
@@ -162,7 +167,7 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
         setBatchAction(null);
     }
 
-    const hasSelection = selectedIds.size > 0;
+    const hasSelection = validSelectedIds.size > 0;
     const sheetOpen = selectedAssetId !== null || sheetMode === "create";
 
     return (
@@ -186,7 +191,7 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
                             Action
                             {hasSelection && (
                                 <span className="ml-1.5 rounded-full bg-primary-foreground/20 px-1.5 text-xs">
-                                    {selectedIds.size}
+                                    {validSelectedIds.size}
                                 </span>
                             )}
                             <ChevronDown className="ml-1 h-4 w-4" />
@@ -242,7 +247,7 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
             <AssetTable
                 assets={paginated}
                 onSelect={handleSelectAsset}
-                selectedIds={selectedIds}
+                selectedIds={validSelectedIds}
                 onToggleSelect={handleToggleSelect}
                 onToggleAll={handleToggleAll}
             />
@@ -276,7 +281,7 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
             <BatchActionDialog
                 open={batchDialogOpen}
                 action={batchAction}
-                assetIds={Array.from(selectedIds)}
+                assetIds={Array.from(validSelectedIds)}
                 onClose={handleBatchClose}
                 onComplete={handleBatchComplete}
             />
