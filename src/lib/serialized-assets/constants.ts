@@ -109,4 +109,5 @@ export const CONDITION_COLORS: Record<string, string> = {
     "Excellent": "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
     "New Build": "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
     "Poor": "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+    "Retired": "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 };

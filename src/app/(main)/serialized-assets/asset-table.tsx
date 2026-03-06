@@ -9,6 +9,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     WAREHOUSE_LOCATION_LABELS,
     WAREHOUSE_LOCATION_COLORS,
@@ -20,16 +21,29 @@ import { cn } from "@/lib/utils";
 interface AssetTableProps {
     assets: SerializedAssetListItem[];
     onSelect: (id: string) => void;
+    selectedIds: Set<string>;
+    onToggleSelect: (id: string) => void;
+    onToggleAll: () => void;
 }
 
 function locationDisplay(asset: SerializedAssetListItem): string {
-    if (asset.currentLocation === "deployed_customer" && asset.deployedLocationName) {
+    if (asset.deployedLocationName) {
         return asset.deployedLocationName;
     }
     return WAREHOUSE_LOCATION_LABELS[asset.currentLocation];
 }
 
-export function AssetTable({ assets, onSelect }: AssetTableProps) {
+function locationColor(asset: SerializedAssetListItem): string {
+    const name = asset.deployedLocationName;
+    if (name === "Retired") return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+    if (name?.startsWith("Reserved")) return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+    if (name?.startsWith("Refurbish")) return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200";
+    return WAREHOUSE_LOCATION_COLORS[asset.currentLocation];
+}
+
+export function AssetTable({ assets, onSelect, selectedIds, onToggleSelect, onToggleAll }: AssetTableProps) {
+    const allSelected = assets.length > 0 && assets.every((a) => selectedIds.has(a.id));
+    const someSelected = assets.some((a) => selectedIds.has(a.id)) && !allSelected;
     if (assets.length === 0) {
         return (
             <div className="rounded-md border p-12 text-center">
@@ -43,6 +57,13 @@ export function AssetTable({ assets, onSelect }: AssetTableProps) {
             <Table>
                 <TableHeader>
                     <TableRow className="hover:bg-transparent">
+                        <TableHead className="w-10">
+                            <Checkbox
+                                checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                                onCheckedChange={onToggleAll}
+                                aria-label="Select all assets"
+                            />
+                        </TableHead>
                         <TableHead className="whitespace-nowrap">Asset #</TableHead>
                         <TableHead className="whitespace-nowrap">Asset Type</TableHead>
                         <TableHead className="whitespace-nowrap">Manufacturer</TableHead>
@@ -71,6 +92,13 @@ export function AssetTable({ assets, onSelect }: AssetTableProps) {
                                 }
                             }}
                         >
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                                <Checkbox
+                                    checked={selectedIds.has(asset.id)}
+                                    onCheckedChange={() => onToggleSelect(asset.id)}
+                                    aria-label={`Select asset ${asset.serialNumber}`}
+                                />
+                            </TableCell>
                             <TableCell className="font-mono text-xs font-medium whitespace-nowrap">
                                 {asset.serialNumber}
                             </TableCell>
@@ -94,7 +122,7 @@ export function AssetTable({ assets, onSelect }: AssetTableProps) {
                                 <Badge
                                     className={cn(
                                         "text-[10px] whitespace-nowrap",
-                                        WAREHOUSE_LOCATION_COLORS[asset.currentLocation],
+                                        locationColor(asset),
                                     )}
                                 >
                                     {locationDisplay(asset)}

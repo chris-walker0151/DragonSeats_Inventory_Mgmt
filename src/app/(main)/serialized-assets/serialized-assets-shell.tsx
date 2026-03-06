@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import type { SerializedAssetListItem } from "@/lib/serialized-assets/types";
 import type { LocationFilter } from "@/lib/serialized-assets/types";
 import { useFilters, usePaginatedFilter } from "@/hooks";
@@ -8,13 +8,21 @@ import { AssetFilters } from "./asset-filters";
 import type { FilterOptions } from "./asset-filters";
 import { AssetTable } from "./asset-table";
 import { AssetDetailSheet } from "./asset-detail-sheet";
+import { BatchActionDialog } from "./batch-action-dialog";
 import { Pagination } from "@/components/shared";
 import { ImportDialog } from "@/components/shared/import-dialog";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
 import { SERIALIZED_ASSET_COLUMNS } from "@/lib/import/constants";
 import { importSerializedAssetsAction } from "./actions";
+import type { BatchAction } from "./actions";
 import { Button } from "@/components/ui/button";
-import { Upload, Plus } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { Upload, Plus, ChevronDown, Bookmark, Truck, Wrench, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type AssetFilters_ = {
@@ -56,6 +64,11 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
     const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
     const [sheetMode, setSheetMode] = useState<"view" | "create">("view");
     const [importOpen, setImportOpen] = useState(false);
+
+    // Batch action state
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [batchAction, setBatchAction] = useState<BatchAction | null>(null);
+    const [batchDialogOpen, setBatchDialogOpen] = useState(false);
 
     // Compute dynamic filter options from the full asset list
     const filterOptions: FilterOptions = useMemo(() => ({
@@ -105,6 +118,51 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
         router.refresh();
     }
 
+    // Clear selection when filters or page change
+    useEffect(() => {
+        setSelectedIds(new Set());
+    }, [filters, search, page]);
+
+    const handleToggleSelect = useCallback((id: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    }, []);
+
+    const handleToggleAll = useCallback(() => {
+        setSelectedIds((prev) => {
+            const allSelected = paginated.every((a) => prev.has(a.id));
+            if (allSelected) {
+                return new Set();
+            }
+            return new Set(paginated.map((a) => a.id));
+        });
+    }, [paginated]);
+
+    function handleBatchAction(action: BatchAction) {
+        setBatchAction(action);
+        setBatchDialogOpen(true);
+    }
+
+    function handleBatchComplete() {
+        setBatchDialogOpen(false);
+        setBatchAction(null);
+        setSelectedIds(new Set());
+        router.refresh();
+    }
+
+    function handleBatchClose() {
+        setBatchDialogOpen(false);
+        setBatchAction(null);
+    }
+
+    const hasSelection = selectedIds.size > 0;
     const sheetOpen = selectedAssetId !== null || sheetMode === "create";
 
     return (
@@ -118,6 +176,44 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
                     <Plus className="mr-2 h-4 w-4" />
                     Add New
                 </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            size="sm"
+                            variant={hasSelection ? "default" : "outline"}
+                            disabled={!hasSelection}
+                        >
+                            Action
+                            {hasSelection && (
+                                <span className="ml-1.5 rounded-full bg-primary-foreground/20 px-1.5 text-xs">
+                                    {selectedIds.size}
+                                </span>
+                            )}
+                            <ChevronDown className="ml-1 h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleBatchAction("reserve")}>
+                            <Bookmark className="mr-2 h-4 w-4" />
+                            Reserve
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleBatchAction("deploy")}>
+                            <Truck className="mr-2 h-4 w-4" />
+                            Deploy
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleBatchAction("refurbish")}>
+                            <Wrench className="mr-2 h-4 w-4" />
+                            Refurbish
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => handleBatchAction("retire")}
+                        >
+                            <XCircle className="mr-2 h-4 w-4" />
+                            Retire
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
 
             <AssetFilters
@@ -146,6 +242,9 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
             <AssetTable
                 assets={paginated}
                 onSelect={handleSelectAsset}
+                selectedIds={selectedIds}
+                onToggleSelect={handleToggleSelect}
+                onToggleAll={handleToggleAll}
             />
 
             <Pagination
@@ -172,6 +271,14 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
                 columns={SERIALIZED_ASSET_COLUMNS}
                 templateFileName="serialized-assets-template.xlsx"
                 onImport={importSerializedAssetsAction}
+            />
+
+            <BatchActionDialog
+                open={batchDialogOpen}
+                action={batchAction}
+                assetIds={Array.from(selectedIds)}
+                onClose={handleBatchClose}
+                onComplete={handleBatchComplete}
             />
         </>
     );
