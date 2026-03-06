@@ -47,8 +47,12 @@ jobs:
 
       # Build the Next.js application to ensure it compiles successfully
       # This step would fail if there are any build-time errors
+      # A placeholder DATABASE_URL is provided because db.ts validates it at import time;
+      # all data-fetching pages use force-dynamic so no real DB connection is made during build.
       - name: Build application
         run: npm run build
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
 
   # Database migration job - only runs when code is pushed to main (not on PRs)
   # This automatically applies any new database migrations to production
