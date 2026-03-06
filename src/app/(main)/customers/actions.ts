@@ -7,6 +7,11 @@ import type { CustomerDetail } from "@/lib/customers/types";
 import type { ImportResult } from "@/lib/import/types";
 import { prisma } from "@/lib/db";
 
+/* ── Valid enum values for import validation ── */
+const VALID_LEAGUES = new Set(["nfl", "ncaa_fbs", "ncaa_fcs", "other"]);
+const VALID_CONTRACT_TYPES = new Set(["seasonal_rental", "multi_year_lease"]);
+const VALID_CUSTOMER_STATUSES = new Set(["active", "inactive", "prospect"]);
+
 /**
  * Server action to fetch a single customer detail.
  * Called from the detail sheet when a table row is clicked.
@@ -58,34 +63,63 @@ export async function importCustomersAction(
                 continue;
             }
 
+            const league = String(row.league ?? "other").toLowerCase().trim();
+            if (!VALID_LEAGUES.has(league)) {
+                errors.push({ row: i + 1, column: "league", message: `Invalid league: "${league}". Valid: ${[...VALID_LEAGUES].join(", ")}` });
+                skipped++;
+                continue;
+            }
+
+            const contractType = String(row.contractType ?? "seasonal_rental").toLowerCase().trim();
+            if (!VALID_CONTRACT_TYPES.has(contractType)) {
+                errors.push({ row: i + 1, column: "contractType", message: `Invalid contract type: "${contractType}". Valid: ${[...VALID_CONTRACT_TYPES].join(", ")}` });
+                skipped++;
+                continue;
+            }
+
+            const activeStatus = row.activeStatus
+                ? String(row.activeStatus).toLowerCase().trim()
+                : "active";
+            if (!VALID_CUSTOMER_STATUSES.has(activeStatus)) {
+                errors.push({ row: i + 1, column: "activeStatus", message: `Invalid status: "${activeStatus}". Valid: ${[...VALID_CUSTOMER_STATUSES].join(", ")}` });
+                skipped++;
+                continue;
+            }
+
             const data = {
-                league: String(row.league ?? "other").toLowerCase().trim() as never,
+                league: league as never,
                 organizationLegalName: String(row.organizationLegalName ?? teamName),
-                contractType: String(row.contractType ?? "seasonal_rental").toLowerCase().trim() as never,
+                contractType: contractType as never,
                 primaryContactName: row.primaryContactName ? String(row.primaryContactName) : null,
                 primaryContactEmail: row.primaryContactEmail ? String(row.primaryContactEmail) : null,
                 primaryContactPhone: row.primaryContactPhone ? String(row.primaryContactPhone) : null,
                 stadiumName: row.stadiumName ? String(row.stadiumName) : null,
                 stadiumAddress: row.stadiumAddress ? String(row.stadiumAddress) : null,
-                activeStatus: row.activeStatus
-                    ? (String(row.activeStatus).toLowerCase().trim() as never)
-                    : ("active" as never),
+                activeStatus: activeStatus as never,
             };
 
-            const existing = await prisma.customer.findFirst({
-                where: { teamName: { equals: teamName, mode: "insensitive" } },
+            let wasUpdate = false;
+            await prisma.$transaction(async (tx) => {
+                const existing = await tx.customer.findFirst({
+                    where: { teamName: { equals: teamName, mode: "insensitive" } },
+                });
+
+                if (existing) {
+                    await tx.customer.update({
+                        where: { id: existing.id },
+                        data,
+                    });
+                    wasUpdate = true;
+                } else {
+                    await tx.customer.create({
+                        data: { teamName, ...data },
+                    });
+                }
             });
 
-            if (existing) {
-                await prisma.customer.update({
-                    where: { id: existing.id },
-                    data,
-                });
+            if (wasUpdate) {
                 updated++;
             } else {
-                await prisma.customer.create({
-                    data: { teamName, ...data },
-                });
                 created++;
             }
         } catch (err) {

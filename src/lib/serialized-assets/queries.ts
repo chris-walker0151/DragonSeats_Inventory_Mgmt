@@ -165,6 +165,22 @@ export async function deployAsset(input: {
     expectedReturnDate?: string;
     notes?: string;
 }) {
+    const deploymentDate = new Date(input.deploymentDate);
+    if (isNaN(deploymentDate.getTime())) {
+        throw new Error("Invalid deployment date");
+    }
+
+    let expectedReturnDate: Date | null = null;
+    if (input.expectedReturnDate) {
+        expectedReturnDate = new Date(input.expectedReturnDate);
+        if (isNaN(expectedReturnDate.getTime())) {
+            throw new Error("Invalid expected return date");
+        }
+        if (expectedReturnDate <= deploymentDate) {
+            throw new Error("Expected return date must be after deployment date");
+        }
+    }
+
     return prisma.$transaction([
         prisma.serializedAsset.update({
             where: { id: input.assetId },
@@ -178,10 +194,8 @@ export async function deployAsset(input: {
             data: {
                 assetId: input.assetId,
                 customerId: input.customerId,
-                deploymentDate: new Date(input.deploymentDate),
-                expectedReturnDate: input.expectedReturnDate
-                    ? new Date(input.expectedReturnDate)
-                    : null,
+                deploymentDate,
+                expectedReturnDate,
                 deploymentNotes: input.notes || null,
             },
         }),
@@ -210,12 +224,14 @@ export async function returnAsset(input: {
             orderBy: { deploymentDate: "desc" },
         });
 
-        if (activeDeployment) {
-            await tx.deployment.update({
-                where: { id: activeDeployment.id },
-                data: { actualReturnDate: new Date() },
-            });
+        if (!activeDeployment) {
+            throw new Error("No active deployment found for this asset");
         }
+
+        await tx.deployment.update({
+            where: { id: activeDeployment.id },
+            data: { actualReturnDate: new Date() },
+        });
     });
 }
 

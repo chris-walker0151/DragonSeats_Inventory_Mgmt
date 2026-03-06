@@ -176,6 +176,21 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
 
     const isEditing = sheetMode === "edit" || sheetMode === "create";
 
+    // Reset deploy/return form state when sheet closes (state-tracking pattern)
+    const [prevOpen, setPrevOpen] = useState(open);
+    if (prevOpen !== open) {
+        setPrevOpen(open);
+        if (!open) {
+            setShowDeployForm(false);
+            setDeployCustomerId("");
+            setDeployDate(new Date().toISOString().slice(0, 10));
+            setDeployExpectedReturn("");
+            setDeployNotes("");
+            setShowReturnForm(false);
+            setReturnLocation("");
+        }
+    }
+
     // Track prop changes and reset state during render (avoids setState in useEffect)
     const [prev, setPrev] = useState({ assetId, initialMode });
     if (prev.assetId !== assetId || prev.initialMode !== initialMode) {
@@ -201,9 +216,13 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
             });
         } else if (assetId) {
             startTransition(async () => {
-                const data = await fetchAssetDetail(assetId);
-                setDetail(data);
-                if (data) setFormData(detailToForm(data));
+                try {
+                    const data = await fetchAssetDetail(assetId);
+                    setDetail(data);
+                    if (data) setFormData(detailToForm(data));
+                } catch {
+                    toast.error("Failed to load asset details");
+                }
             });
         }
     }, [assetId, initialMode]);
@@ -310,7 +329,9 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
     }
 
     function handleDeploy() {
-        if (!detail || !deployCustomerId || !deployDate) return;
+        if (!detail) return;
+        if (!deployCustomerId) { toast.error("Please select a customer"); return; }
+        if (!deployDate) { toast.error("Please enter a deployment date"); return; }
         startTransition(async () => {
             await deployAssetAction({
                 assetId: detail.id,

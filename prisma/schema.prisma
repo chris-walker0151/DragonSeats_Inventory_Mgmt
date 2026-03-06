@@ -114,7 +114,7 @@ model Customer {
 
 model SerializedAsset {
     id               String            @id @default(uuid())
-    serialNumber     String            @map("serial_number")
+    serialNumber     String            @unique @map("serial_number")
     skuId            String?           @map("sku_id")
     productCategory  ProductCategory   @map("product_category")
     productTypeModel String?           @map("product_type_model")
@@ -189,6 +189,7 @@ model QuantityInventory {
 
     transfersItem Transfer[] @relation("TransferItem")
 
+    @@unique([itemCategory, itemVariant, location])
     @@map("quantity_inventory")
 }
 

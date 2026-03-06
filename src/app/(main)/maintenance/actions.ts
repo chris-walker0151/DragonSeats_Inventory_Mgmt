@@ -23,4 +23,6 @@ export async function updateMaintenanceInfoAction(input: {
     });
     revalidatePath("/maintenance");
     revalidatePath("/serialized-assets");
+    revalidatePath("/deployments");
+    revalidatePath("/");
 }
