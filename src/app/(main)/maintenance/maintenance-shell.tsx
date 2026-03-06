@@ -23,7 +23,7 @@ export function MaintenanceShell({ assets }: { assets: MaintenanceListItem[] }) 
     const [sortField, setSortField] = useState<MaintenanceSortField>("yearManufactured");
     const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
 
-    const { filtered, paginated, page, totalPages, totalFiltered, setPage } =
+    const { paginated, page, totalPages, totalFiltered, setPage } =
         usePaginatedFilter({
             items: assets,
             filters,

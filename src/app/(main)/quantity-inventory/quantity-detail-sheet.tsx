@@ -84,23 +84,28 @@ export function QuantityDetailSheet({ itemId, open, onClose, mode: initialMode =
 
     const isEditing = sheetMode === "edit" || sheetMode === "create";
 
-    useEffect(() => {
+    // Track prop changes and reset state during render (avoids setState in useEffect)
+    const [prev, setPrev] = useState({ itemId, initialMode });
+    if (prev.itemId !== itemId || prev.initialMode !== initialMode) {
+        setPrev({ itemId, initialMode });
         if (initialMode === "create") {
             setSheetMode("create");
             setFormData(EMPTY_FORM);
             setItem(null);
-            return;
+        } else {
+            setSheetMode("view");
+            if (!itemId) setItem(null);
         }
+    }
 
-        setSheetMode("view");
-        if (itemId) {
+    // Fetch data only for view mode
+    useEffect(() => {
+        if (initialMode !== "create" && itemId) {
             startTransition(async () => {
                 const data = await fetchQuantityItemAction(itemId);
                 setItem(data);
                 if (data) setFormData(itemToForm(data));
             });
-        } else {
-            setItem(null);
         }
     }, [itemId, initialMode]);
 

@@ -26,8 +26,6 @@ import {
     LIFECYCLE_STATUS_LABELS,
     LIFECYCLE_STATUS_COLORS,
     WAREHOUSE_LOCATION_LABELS,
-    BRANDING_STATUS_LABELS,
-    BRANDING_STATUS_COLORS,
     ALL_PRODUCT_CATEGORIES,
     ALL_LIFECYCLE_STATUSES,
     ALL_WAREHOUSE_LOCATIONS,
@@ -178,31 +176,36 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
 
     const isEditing = sheetMode === "edit" || sheetMode === "create";
 
-    useEffect(() => {
+    // Track prop changes and reset state during render (avoids setState in useEffect)
+    const [prev, setPrev] = useState({ assetId, initialMode });
+    if (prev.assetId !== assetId || prev.initialMode !== initialMode) {
+        setPrev({ assetId, initialMode });
         if (initialMode === "create") {
             setSheetMode("create");
             setFormData(EMPTY_FORM);
             setDetail(null);
-            // Load customers for the dropdown
+        } else {
+            setSheetMode("view");
+            if (!assetId) setDetail(null);
+            setShowDeployForm(false);
+            setShowReturnForm(false);
+        }
+    }
+
+    // Fetch data / load customers
+    useEffect(() => {
+        if (initialMode === "create") {
             startTransition(async () => {
                 const list = await fetchActiveCustomersAction();
                 setCustomers(list);
             });
-            return;
-        }
-
-        setSheetMode("view");
-        if (assetId) {
+        } else if (assetId) {
             startTransition(async () => {
                 const data = await fetchAssetDetail(assetId);
                 setDetail(data);
                 if (data) setFormData(detailToForm(data));
             });
-        } else {
-            setDetail(null);
         }
-        setShowDeployForm(false);
-        setShowReturnForm(false);
     }, [assetId, initialMode]);
 
     function handleEdit() {

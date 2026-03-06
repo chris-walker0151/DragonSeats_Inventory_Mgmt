@@ -50,7 +50,7 @@ export function ImportDialog({
     const [previewRows, setPreviewRows] = useState<ImportPreviewRow[]>([]);
     const [result, setResult] = useState<ImportResult | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [isPending, startTransition] = useTransition();
+    const [, startTransition] = useTransition();
 
     const reset = useCallback(() => {
         setStep("upload");

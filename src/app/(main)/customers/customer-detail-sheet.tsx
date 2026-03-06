@@ -111,23 +111,28 @@ export function CustomerDetailSheet({ customerId, open, onClose, mode: initialMo
 
     const isEditing = sheetMode === "edit" || sheetMode === "create";
 
-    useEffect(() => {
+    // Track prop changes and reset state during render (avoids setState in useEffect)
+    const [prev, setPrev] = useState({ customerId, initialMode });
+    if (prev.customerId !== customerId || prev.initialMode !== initialMode) {
+        setPrev({ customerId, initialMode });
         if (initialMode === "create") {
             setSheetMode("create");
             setFormData(EMPTY_FORM);
             setDetail(null);
-            return;
+        } else {
+            setSheetMode("view");
+            if (!customerId) setDetail(null);
         }
+    }
 
-        setSheetMode("view");
-        if (customerId) {
+    // Fetch data only for view mode
+    useEffect(() => {
+        if (initialMode !== "create" && customerId) {
             startTransition(async () => {
                 const data = await fetchCustomerDetailAction(customerId);
                 setDetail(data);
                 if (data) setFormData(detailToForm(data));
             });
-        } else {
-            setDetail(null);
         }
     }, [customerId, initialMode]);
 
