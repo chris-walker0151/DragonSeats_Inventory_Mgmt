@@ -88,6 +88,67 @@ export async function updateAssetAction(id: string, input: AssetUpdateInput) {
     revalidatePath("/dashboard");
 }
 
+/**
+ * Batch update multiple assets based on a selected action.
+ */
+export type BatchAction = "reserve" | "deploy" | "refurbish" | "retire";
+
+export async function batchUpdateAssetsAction(input: {
+    assetIds: string[];
+    action: BatchAction;
+    targetName?: string;
+}) {
+    const { assetIds, action, targetName } = input;
+
+    if (assetIds.length === 0) {
+        throw new Error("No assets selected");
+    }
+
+    let data: Record<string, unknown>;
+
+    switch (action) {
+        case "reserve":
+            if (!targetName?.trim()) throw new Error("Team name is required");
+            data = {
+                lifecycleStatus: "in_warehouse_reserved",
+                deployedLocationName: `Reserved - ${targetName.trim()}`,
+            };
+            break;
+        case "deploy":
+            if (!targetName?.trim()) throw new Error("Team name is required");
+            data = {
+                lifecycleStatus: "deployed_customer",
+                currentLocation: "deployed_customer",
+                deployedLocationName: targetName.trim(),
+            };
+            break;
+        case "refurbish":
+            if (!targetName?.trim()) throw new Error("Manufacturer name is required");
+            data = {
+                deployedLocationName: `Refurbish - ${targetName.trim()}`,
+            };
+            break;
+        case "retire":
+            data = {
+                lifecycleStatus: "retired",
+                condition: "Retired",
+                deployedLocationName: "Retired",
+            };
+            break;
+    }
+
+    await prisma.serializedAsset.updateMany({
+        where: { id: { in: assetIds } },
+        data,
+    });
+
+    revalidatePath("/serialized-assets");
+    revalidatePath("/deployments");
+    revalidatePath("/dashboard");
+
+    return { updated: assetIds.length };
+}
+
 /** Map a free-text location string to a warehouse enum + deployed location name. */
 function resolveLocation(raw: unknown): {
     currentLocation: "cleveland_warehouse" | "kansas_city_warehouse" | "jacksonville_warehouse" | "deployed_customer";
