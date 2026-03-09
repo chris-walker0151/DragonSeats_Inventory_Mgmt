@@ -15,6 +15,7 @@ import { createServiceTicket } from "@/lib/service-tickets/queries";
 import type { SerializedAssetDetail } from "@/lib/serialized-assets/types";
 import type { ImportResult } from "@/lib/import/types";
 import { prisma } from "@/lib/db";
+import { logChange } from "@/lib/audit/log";
 
 /* ── Valid enum values for import validation ── */
 const VALID_PRODUCT_CATEGORIES = new Set(["bench", "heater", "ac_unit", "compressor", "cooling_tower", "shader", "hot_box"]);
@@ -43,6 +44,12 @@ export async function deployAssetAction(input: {
     notes?: string;
 }) {
     await deployAsset(input);
+    await logChange({
+        entityType: "SerializedAsset",
+        entityId: input.assetId,
+        action: "deploy",
+        summary: `Deployed to customer`,
+    });
     revalidatePath("/serialized-assets");
     revalidatePath("/deployments");
     revalidatePath("/dashboard");
@@ -57,6 +64,12 @@ export async function returnAssetAction(input: {
     returnLocation: WarehouseLocation;
 }) {
     await returnAsset(input);
+    await logChange({
+        entityType: "SerializedAsset",
+        entityId: input.assetId,
+        action: "return",
+        summary: `Returned to ${input.returnLocation}`,
+    });
     revalidatePath("/serialized-assets");
     revalidatePath("/deployments");
     revalidatePath("/dashboard");
@@ -75,6 +88,12 @@ export async function fetchActiveCustomersAction() {
  */
 export async function createAssetAction(input: AssetCreateInput): Promise<{ id: string }> {
     const asset = await createSerializedAsset(input);
+    await logChange({
+        entityType: "SerializedAsset",
+        entityId: asset.id,
+        action: "create",
+        newData: input as unknown as Record<string, unknown>,
+    });
     revalidatePath("/serialized-assets");
     revalidatePath("/maintenance");
     revalidatePath("/dashboard");
@@ -99,6 +118,14 @@ export async function updateAssetAction(id: string, input: AssetUpdateInput) {
     });
 
     await updateSerializedAsset(id, input);
+
+    await logChange({
+        entityType: "SerializedAsset",
+        entityId: id,
+        action: "update",
+        oldData: currentAsset as Record<string, unknown>,
+        newData: input as Record<string, unknown>,
+    });
 
     const inputRecord = input as Record<string, unknown>;
 
@@ -394,6 +421,18 @@ export async function batchUpdateAssetsAction(input: BatchActionInput) {
             break;
         }
     }
+
+    // Log batch update for each asset
+    await Promise.all(
+        assetIds.map((assetId) =>
+            logChange({
+                entityType: "SerializedAsset",
+                entityId: assetId,
+                action: "batch_update",
+                summary: `Batch ${action}`,
+            }),
+        ),
+    );
 
     revalidatePath("/serialized-assets");
     revalidatePath("/deployments");

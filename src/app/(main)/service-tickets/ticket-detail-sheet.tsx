@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ActivityHistory } from "@/components/shared";
 import {
     TICKET_STATUS_LABELS,
     TICKET_STATUS_COLORS,
@@ -705,6 +706,14 @@ export function TicketDetailSheet({
                                         ).toLocaleDateString()}
                                     </span>
                                 </div>
+                            )}
+
+                            {/* Activity History (view mode) */}
+                            {sheetMode === "view" && detail && (
+                                <ActivityHistory
+                                    entityType="ServiceTicket"
+                                    entityId={detail.id}
+                                />
                             )}
                         </div>
                     </>
