@@ -49,6 +49,7 @@ export const LIFECYCLE_STATUS_LABELS: Record<LifecycleStatus, string> = {
     in_warehouse_available: "Available",
     in_warehouse_reserved: "Reserved",
     deployed_customer: "Deployed",
+    down: "Down",
     retired: "Retired",
 };
 
@@ -57,7 +58,8 @@ export const LIFECYCLE_STATUS_COLORS: Record<LifecycleStatus, string> = {
     in_warehouse_available: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
     in_warehouse_reserved: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
     deployed_customer: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-    retired: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+    down: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+    retired: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
 };
 
 export const ALL_LIFECYCLE_STATUSES: LifecycleStatus[] = [
@@ -65,6 +67,7 @@ export const ALL_LIFECYCLE_STATUSES: LifecycleStatus[] = [
     "in_warehouse_available",
     "in_warehouse_reserved",
     "deployed_customer",
+    "down",
     "retired",
 ];
 
