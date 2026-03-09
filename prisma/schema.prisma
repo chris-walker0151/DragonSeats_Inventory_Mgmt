@@ -52,6 +52,12 @@ enum CustomerStatus {
     prospect
 }
 
+enum ObligationType {
+    home
+    road
+    both
+}
+
 enum BrandingStatus {
     unbranded
     branded
@@ -68,6 +74,39 @@ enum TransferStatus {
     in_transit
     received
     cancelled
+}
+
+enum TicketStatus {
+    open
+    in_progress
+    pending_parts
+    completed
+    cancelled
+}
+
+enum ProblemCategory {
+    pickup_order
+    damage
+    major_repair
+    missing_parts
+    refurbishment
+    warranty
+    other
+}
+
+enum TicketPriority {
+    low
+    medium
+    high
+    critical
+}
+
+enum ResolutionOutcome {
+    repaired_to_available
+    refurbished
+    retired
+    cannibalized
+    returned_to_manufacturer
 }
 
 // ─── Models ──────────────────────────────────────────────────────────────────
@@ -101,6 +140,9 @@ model Customer {
     contractType          ContractType   @map("contract_type")
     contractStartDate     DateTime?      @map("contract_start_date") @db.Date
     contractEndDate       DateTime?      @map("contract_end_date") @db.Date
+    benchCount            Int?           @map("bench_count")
+    obligationType        ObligationType? @map("obligation_type")
+    brandingRequired      Boolean        @default(false) @map("branding_required")
     activeStatus          CustomerStatus @default(active) @map("active_status")
 
     createdAt DateTime @default(now()) @map("created_at")
@@ -139,6 +181,7 @@ model SerializedAsset {
     // Extended bench fields (from Dragon Seats inventory sheet)
     condition           String?
     benchStatus         String?         @map("bench_status")
+    availability        String?
     manifoldStyle       String?         @map("manifold_style")
     deckType            String?         @map("deck_type")
     seatType            String?         @map("seat_type")
@@ -170,6 +213,7 @@ model SerializedAsset {
 
     deployments     Deployment[]
     transfersAsset  Transfer[]   @relation("TransferAsset")
+    serviceTickets  ServiceTicket[]
 
     @@map("serialized_assets")
 }
@@ -231,4 +275,27 @@ model Transfer {
     quantityItem QuantityInventory? @relation("TransferItem", fields: [itemId], references: [id])
 
     @@map("transfers")
+}
+
+model ServiceTicket {
+    id                   String             @id @default(uuid())
+    assetId              String             @map("asset_id")
+    hub                  WarehouseLocation
+    ticketStatus         TicketStatus       @default(open) @map("ticket_status")
+    dateDownStarted      DateTime           @default(now()) @map("date_down_started") @db.Date
+    problemCategory      ProblemCategory    @map("problem_category")
+    priority             TicketPriority     @default(medium)
+    detailedNotes        String?            @map("detailed_notes")
+    assignedTechnician   String?            @map("assigned_technician")
+    targetCompletionDate DateTime?          @map("target_completion_date") @db.Date
+    resolutionOutcome    ResolutionOutcome? @map("resolution_outcome")
+    resolutionNotes      String?            @map("resolution_notes")
+    resolvedDate         DateTime?          @map("resolved_date") @db.Date
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    asset SerializedAsset @relation(fields: [assetId], references: [id])
+
+    @@map("service_tickets")
 }

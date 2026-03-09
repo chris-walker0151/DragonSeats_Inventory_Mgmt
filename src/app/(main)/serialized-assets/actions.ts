@@ -11,6 +11,7 @@ import {
     updateSerializedAsset,
 } from "@/lib/serialized-assets/queries";
 import type { AssetCreateInput, AssetUpdateInput } from "@/lib/serialized-assets/queries";
+import { createServiceTicket } from "@/lib/service-tickets/queries";
 import type { SerializedAssetDetail } from "@/lib/serialized-assets/types";
 import type { ImportResult } from "@/lib/import/types";
 import { prisma } from "@/lib/db";
@@ -45,6 +46,7 @@ export async function deployAssetAction(input: {
     revalidatePath("/serialized-assets");
     revalidatePath("/deployments");
     revalidatePath("/dashboard");
+    revalidatePath("/service-tickets");
 }
 
 /**
@@ -58,6 +60,7 @@ export async function returnAssetAction(input: {
     revalidatePath("/serialized-assets");
     revalidatePath("/deployments");
     revalidatePath("/dashboard");
+    revalidatePath("/service-tickets");
 }
 
 /**
@@ -80,12 +83,61 @@ export async function createAssetAction(input: AssetCreateInput): Promise<{ id: 
 
 /**
  * Update an existing serialized asset.
+ * Auto-creates a service ticket when condition changes to "Down"
+ * or lifecycleStatus changes to "in_warehouse_reserved" (pickup order).
  */
 export async function updateAssetAction(id: string, input: AssetUpdateInput) {
+    // Fetch current asset state to detect transitions
+    const currentAsset = await prisma.serializedAsset.findUnique({
+        where: { id },
+        select: {
+            condition: true,
+            lifecycleStatus: true,
+            currentLocation: true,
+            serialNumber: true,
+        },
+    });
+
     await updateSerializedAsset(id, input);
+
+    const inputRecord = input as Record<string, unknown>;
+
+    // Auto-create pickup order ticket when lifecycleStatus changes to reserved
+    const newStatus = inputRecord.lifecycleStatus as string | undefined;
+    const wasReserved = currentAsset?.lifecycleStatus === "in_warehouse_reserved";
+    const isNowReserved = newStatus === "in_warehouse_reserved";
+
+    if (isNowReserved && !wasReserved && currentAsset) {
+        await createServiceTicket({
+            assetId: id,
+            hub: (inputRecord.currentLocation as WarehouseLocation) ?? currentAsset.currentLocation,
+            problemCategory: "pickup_order",
+            priority: "medium",
+            detailedNotes: (inputRecord.notes as string) ?? null,
+            dateDownStarted: null,
+        });
+    }
+
+    // Auto-create service ticket when condition changes to "Down"
+    const newCondition = inputRecord.condition as string | undefined;
+    const wasDown = currentAsset?.condition?.toLowerCase() === "down";
+    const isNowDown = newCondition?.toLowerCase() === "down";
+
+    if (isNowDown && !wasDown && currentAsset) {
+        await createServiceTicket({
+            assetId: id,
+            hub: currentAsset.currentLocation as WarehouseLocation,
+            problemCategory: "damage",
+            priority: "high",
+            detailedNotes: (inputRecord.notes as string) ?? null,
+            dateDownStarted: null,
+        });
+    }
+
     revalidatePath("/serialized-assets");
     revalidatePath("/maintenance");
     revalidatePath("/dashboard");
+    revalidatePath("/service-tickets");
 }
 
 /**

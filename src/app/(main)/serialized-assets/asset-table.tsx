@@ -69,6 +69,7 @@ export function AssetTable({ assets, onSelect, selectedIds, onToggleSelect, onTo
                         <TableHead className="whitespace-nowrap">Manufacturer</TableHead>
                         <TableHead className="whitespace-nowrap">Condition</TableHead>
                         <TableHead className="whitespace-nowrap">Status</TableHead>
+                        <TableHead className="whitespace-nowrap">Availability</TableHead>
                         <TableHead className="whitespace-nowrap">Location</TableHead>
                         <TableHead className="whitespace-nowrap">Manifold</TableHead>
                         <TableHead className="whitespace-nowrap">Deck Type</TableHead>
@@ -117,6 +118,9 @@ export function AssetTable({ assets, onSelect, selectedIds, onToggleSelect, onTo
                             </TableCell>
                             <TableCell className="text-xs whitespace-nowrap">
                                 {asset.benchStatus ?? <Dash />}
+                            </TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">
+                                {asset.availability ?? <Dash />}
                             </TableCell>
                             <TableCell>
                                 <Badge

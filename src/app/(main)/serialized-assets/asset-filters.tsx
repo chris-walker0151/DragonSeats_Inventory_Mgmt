@@ -19,6 +19,7 @@ export interface FilterOptions {
     manufacturer: string[];
     condition: string[];
     benchStatus: string[];
+    availability: string[];
     manifoldStyle: string[];
     deckType: string[];
     seatType: string[];
@@ -30,6 +31,7 @@ interface AssetFiltersProps {
     manufacturerFilter: string;
     conditionFilter: string;
     benchStatusFilter: string;
+    availabilityFilter: string;
     manifoldStyleFilter: string;
     deckTypeFilter: string;
     seatTypeFilter: string;
@@ -40,6 +42,7 @@ interface AssetFiltersProps {
     onManufacturerChange: (v: string) => void;
     onConditionChange: (v: string) => void;
     onBenchStatusChange: (v: string) => void;
+    onAvailabilityChange: (v: string) => void;
     onManifoldStyleChange: (v: string) => void;
     onDeckTypeChange: (v: string) => void;
     onSeatTypeChange: (v: string) => void;
@@ -53,6 +56,7 @@ export function AssetFilters({
     manufacturerFilter,
     conditionFilter,
     benchStatusFilter,
+    availabilityFilter,
     manifoldStyleFilter,
     deckTypeFilter,
     seatTypeFilter,
@@ -63,6 +67,7 @@ export function AssetFilters({
     onManufacturerChange,
     onConditionChange,
     onBenchStatusChange,
+    onAvailabilityChange,
     onManifoldStyleChange,
     onDeckTypeChange,
     onSeatTypeChange,
@@ -129,7 +134,7 @@ export function AssetFilters({
                     </SelectContent>
                 </Select>
 
-                {/* Bench Status */}
+                {/* Status */}
                 <Select value={benchStatusFilter} onValueChange={onBenchStatusChange}>
                     <SelectTrigger size="sm">
                         <SelectValue placeholder="Status" />
@@ -137,6 +142,19 @@ export function AssetFilters({
                     <SelectContent>
                         <SelectItem value="all">All Statuses</SelectItem>
                         {filterOptions.benchStatus.map((v) => (
+                            <SelectItem key={v} value={v}>{v}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                {/* Availability */}
+                <Select value={availabilityFilter} onValueChange={onAvailabilityChange}>
+                    <SelectTrigger size="sm">
+                        <SelectValue placeholder="Availability" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Availability</SelectItem>
+                        {filterOptions.availability.map((v) => (
                             <SelectItem key={v} value={v}>{v}</SelectItem>
                         ))}
                     </SelectContent>

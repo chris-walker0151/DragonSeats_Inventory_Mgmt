@@ -29,6 +29,7 @@ export interface AssetCreateInput {
     brandingDescription?: string | null;
     condition?: string | null;
     benchStatus?: string | null;
+    availability?: string | null;
     manifoldStyle?: string | null;
     deckType?: string | null;
     seatType?: string | null;
@@ -73,6 +74,7 @@ export async function fetchSerializedAssetsList(): Promise<SerializedAssetListIt
         manufacturer: a.manufacturer,
         condition: a.condition,
         benchStatus: a.benchStatus,
+        availability: a.availability,
         manifoldStyle: a.manifoldStyle,
         deckType: a.deckType,
         seatType: a.seatType,
@@ -126,6 +128,7 @@ export async function fetchSerializedAssetDetail(
         brandingDescription: asset.brandingDescription,
         condition: asset.condition,
         benchStatus: asset.benchStatus,
+        availability: asset.availability,
         manifoldStyle: asset.manifoldStyle,
         deckType: asset.deckType,
         seatType: asset.seatType,
