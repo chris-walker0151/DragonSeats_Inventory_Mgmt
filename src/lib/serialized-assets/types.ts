@@ -27,6 +27,7 @@ export interface SerializedAssetListItem {
     manufacturer: string | null;
     condition: string | null;
     benchStatus: string | null;
+    availability: string | null;
     manifoldStyle: string | null;
     deckType: string | null;
     seatType: string | null;
@@ -57,6 +58,7 @@ export interface SerializedAssetDetail {
     brandingDescription: string | null;
     condition: string | null;
     benchStatus: string | null;
+    availability: string | null;
     manifoldStyle: string | null;
     deckType: string | null;
     seatType: string | null;

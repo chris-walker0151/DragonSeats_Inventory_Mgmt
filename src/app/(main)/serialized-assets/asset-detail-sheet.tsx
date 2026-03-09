@@ -43,7 +43,20 @@ import {
 } from "./actions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Pencil } from "lucide-react";
+import { Pencil, Check, ChevronsUpDown } from "lucide-react";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 
 type SheetMode = "view" | "edit" | "create";
 
@@ -72,6 +85,7 @@ interface AssetFormData {
     brandingDescription: string;
     condition: string;
     benchStatus: string;
+    availability: string;
     manifoldStyle: string;
     deckType: string;
     seatType: string;
@@ -105,6 +119,7 @@ const EMPTY_FORM: AssetFormData = {
     brandingDescription: "",
     condition: "",
     benchStatus: "",
+    availability: "",
     manifoldStyle: "",
     deckType: "",
     seatType: "",
@@ -139,6 +154,7 @@ function detailToForm(detail: SerializedAssetDetail): AssetFormData {
         brandingDescription: detail.brandingDescription ?? "",
         condition: detail.condition ?? "",
         benchStatus: detail.benchStatus ?? "",
+        availability: detail.availability ?? "",
         manifoldStyle: detail.manifoldStyle ?? "",
         deckType: detail.deckType ?? "",
         seatType: detail.seatType ?? "",
@@ -166,6 +182,7 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
     // Deploy form state
     const [showDeployForm, setShowDeployForm] = useState(false);
     const [deployCustomerId, setDeployCustomerId] = useState("");
+    const [deployCustomerOpen, setDeployCustomerOpen] = useState(false);
     const [deployDate, setDeployDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [deployExpectedReturn, setDeployExpectedReturn] = useState("");
     const [deployNotes, setDeployNotes] = useState("");
@@ -268,6 +285,7 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                 brandingDescription: formData.brandingDescription || null,
                 condition: formData.condition || null,
                 benchStatus: formData.benchStatus || null,
+                availability: formData.availability || null,
                 manifoldStyle: formData.manifoldStyle || null,
                 deckType: formData.deckType || null,
                 seatType: formData.seatType || null,
@@ -340,7 +358,7 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                 expectedReturnDate: deployExpectedReturn || undefined,
                 notes: deployNotes || undefined,
             });
-            toast.success("Asset deployed successfully");
+            toast.success("Asset reserved successfully");
             const refreshed = await fetchAssetDetail(detail.id);
             setDetail(refreshed);
             setShowDeployForm(false);
@@ -483,29 +501,64 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                                 )}
                             </Section>
 
-                            {/* Deploy / Return Actions (view mode only) */}
+                            {/* Reserve / Return Actions (view mode only) */}
                             {canDeploy && !showDeployForm && (
                                 <Button onClick={handleOpenDeployForm} className="w-full" disabled={isPending}>
-                                    Deploy to Customer
+                                    Reserve to Customer
                                 </Button>
                             )}
 
                             {showDeployForm && sheetMode === "view" && (
-                                <Section title="Deploy to Customer">
+                                <Section title="Reserve to Customer">
                                     <div className="space-y-3">
                                         <div className="space-y-1.5">
                                             <Label className="text-xs">Customer</Label>
-                                            <Select value={deployCustomerId} onValueChange={setDeployCustomerId}>
-                                                <SelectTrigger><SelectValue placeholder="Select customer..." /></SelectTrigger>
-                                                <SelectContent>
-                                                    {customers.map((c) => (
-                                                        <SelectItem key={c.id} value={c.id}>{c.teamName}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            <Popover open={deployCustomerOpen} onOpenChange={setDeployCustomerOpen}>
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        variant="outline"
+                                                        role="combobox"
+                                                        aria-expanded={deployCustomerOpen}
+                                                        className="w-full justify-between font-normal"
+                                                    >
+                                                        {deployCustomerId
+                                                            ? customers.find((c) => c.id === deployCustomerId)?.teamName
+                                                            : "Search customer..."}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                                    <Command>
+                                                        <CommandInput placeholder="Type to search..." />
+                                                        <CommandList>
+                                                            <CommandEmpty>No customer found.</CommandEmpty>
+                                                            <CommandGroup>
+                                                                {customers.map((c) => (
+                                                                    <CommandItem
+                                                                        key={c.id}
+                                                                        value={c.teamName}
+                                                                        onSelect={() => {
+                                                                            setDeployCustomerId(c.id);
+                                                                            setDeployCustomerOpen(false);
+                                                                        }}
+                                                                    >
+                                                                        <Check
+                                                                            className={cn(
+                                                                                "mr-2 h-4 w-4",
+                                                                                deployCustomerId === c.id ? "opacity-100" : "opacity-0"
+                                                                            )}
+                                                                        />
+                                                                        {c.teamName}
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
                                         </div>
                                         <div className="space-y-1.5">
-                                            <Label className="text-xs">Deployment Date</Label>
+                                            <Label className="text-xs">Reservation Date</Label>
                                             <Input type="date" value={deployDate} onChange={(e) => setDeployDate(e.target.value)} />
                                         </div>
                                         <div className="space-y-1.5">
@@ -514,11 +567,11 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                                         </div>
                                         <div className="space-y-1.5">
                                             <Label className="text-xs">Notes</Label>
-                                            <Input value={deployNotes} onChange={(e) => setDeployNotes(e.target.value)} placeholder="Deployment notes..." />
+                                            <Input value={deployNotes} onChange={(e) => setDeployNotes(e.target.value)} placeholder="Reservation notes..." />
                                         </div>
                                         <div className="flex gap-2">
                                             <Button onClick={handleDeploy} disabled={!deployCustomerId || !deployDate || isPending} className="flex-1">
-                                                {isPending ? "Deploying..." : "Confirm Deploy"}
+                                                {isPending ? "Reserving..." : "Confirm Reservation"}
                                             </Button>
                                             <Button variant="outline" onClick={() => setShowDeployForm(false)}>Cancel</Button>
                                         </div>
@@ -567,6 +620,9 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                                             <FormField label="Status">
                                                 <Input value={formData.benchStatus} onChange={(e) => updateField("benchStatus", e.target.value)} />
                                             </FormField>
+                                            <FormField label="Availability">
+                                                <Input value={formData.availability} onChange={(e) => updateField("availability", e.target.value)} />
+                                            </FormField>
                                             <FormField label="DS Plate Number">
                                                 <Input value={formData.dsPlateNumber} onChange={(e) => updateField("dsPlateNumber", e.target.value)} />
                                             </FormField>
@@ -593,6 +649,7 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                                         <>
                                             <Field label="Condition" value={detail!.condition} />
                                             <Field label="Status" value={detail!.benchStatus} />
+                                            <Field label="Availability" value={detail!.availability} />
                                             <Field label="DS Plate #" value={detail!.dsPlateNumber} />
                                             <Field label="Manifold Style" value={detail!.manifoldStyle} />
                                             <Field label="Deck Type" value={detail!.deckType} />

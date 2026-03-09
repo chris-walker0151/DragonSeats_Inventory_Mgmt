@@ -13,6 +13,7 @@ import {
     Tag,
     BookOpen,
     Wrench,
+    ClipboardList,
 } from "lucide-react";
 import {
     Sidebar,
@@ -37,6 +38,7 @@ const iconMap = {
     Tag,
     BookOpen,
     Wrench,
+    ClipboardList,
 } as const;
 
 interface NavItem {
@@ -56,7 +58,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                 icon: "Package",
             },
             {
-                label: "Quantity Inventory",
+                label: "Bulk Inventory",
                 href: "/quantity-inventory",
                 icon: "Boxes",
             },
@@ -77,6 +79,11 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     {
         label: "Maintenance",
         items: [
+            {
+                label: "Service Tickets",
+                href: "/service-tickets",
+                icon: "ClipboardList",
+            },
             {
                 label: "Predictive Maintenance",
                 href: "/maintenance",

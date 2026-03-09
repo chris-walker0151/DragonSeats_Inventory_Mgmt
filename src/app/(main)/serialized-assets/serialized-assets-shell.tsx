@@ -30,22 +30,28 @@ type AssetFilters_ = {
     manufacturer: string;
     condition: string;
     benchStatus: string;
+    availability: string;
     manifoldStyle: string;
     deckType: string;
     seatType: string;
     wheelType: string;
 };
 
-/** Extract unique non-null values from a field, sorted alphabetically. */
+/** Extract unique non-null values from a field, sorted alphabetically. Includes "Blank" if any items have null/empty values. */
 function uniqueSorted<T>(items: T[], field: keyof T): string[] {
     const set = new Set<string>();
+    let hasBlank = false;
     for (const item of items) {
         const val = item[field];
-        if (val != null && String(val).trim() !== "") {
+        if (val == null || String(val).trim() === "") {
+            hasBlank = true;
+        } else {
             set.add(String(val));
         }
     }
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
+    const sorted = Array.from(set).sort((a, b) => a.localeCompare(b));
+    if (hasBlank) sorted.push("Blank");
+    return sorted;
 }
 
 export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListItem[] }) {
@@ -55,6 +61,7 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
         manufacturer: "all",
         condition: "all",
         benchStatus: "all",
+        availability: "all",
         manifoldStyle: "all",
         deckType: "all",
         seatType: "all",
@@ -75,6 +82,7 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
         manufacturer: uniqueSorted(assets, "manufacturer"),
         condition: uniqueSorted(assets, "condition"),
         benchStatus: uniqueSorted(assets, "benchStatus"),
+        availability: uniqueSorted(assets, "availability"),
         manifoldStyle: uniqueSorted(assets, "manifoldStyle"),
         deckType: uniqueSorted(assets, "deckType"),
         seatType: uniqueSorted(assets, "seatType"),
@@ -89,13 +97,14 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
             searchFields: ["serialNumber", "productTypeModel", "manufacturer", "benchStatus", "manifoldStyle", "deckType", "seatType", "wheelType", "deployedLocationName"],
             filterPredicates: {
                 location: (item, val) => item.currentLocation === val,
-                manufacturer: (item, val) => item.manufacturer === val,
-                condition: (item, val) => item.condition === val,
-                benchStatus: (item, val) => item.benchStatus === val,
-                manifoldStyle: (item, val) => item.manifoldStyle === val,
-                deckType: (item, val) => item.deckType === val,
-                seatType: (item, val) => item.seatType === val,
-                wheelType: (item, val) => item.wheelType === val,
+                manufacturer: (item, val) => val === "Blank" ? !item.manufacturer : item.manufacturer === val,
+                condition: (item, val) => val === "Blank" ? !item.condition : item.condition === val,
+                benchStatus: (item, val) => val === "Blank" ? !item.benchStatus : item.benchStatus === val,
+                availability: (item, val) => val === "Blank" ? !item.availability : item.availability === val,
+                manifoldStyle: (item, val) => val === "Blank" ? !item.manifoldStyle : item.manifoldStyle === val,
+                deckType: (item, val) => val === "Blank" ? !item.deckType : item.deckType === val,
+                seatType: (item, val) => val === "Blank" ? !item.seatType : item.seatType === val,
+                wheelType: (item, val) => val === "Blank" ? !item.wheelType : item.wheelType === val,
             },
         });
 
@@ -226,6 +235,7 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
                 manufacturerFilter={filters.manufacturer}
                 conditionFilter={filters.condition}
                 benchStatusFilter={filters.benchStatus}
+                availabilityFilter={filters.availability}
                 manifoldStyleFilter={filters.manifoldStyle}
                 deckTypeFilter={filters.deckType}
                 seatTypeFilter={filters.seatType}
@@ -236,6 +246,7 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
                 onManufacturerChange={(v) => setFilter("manufacturer", v)}
                 onConditionChange={(v) => setFilter("condition", v)}
                 onBenchStatusChange={(v) => setFilter("benchStatus", v)}
+                onAvailabilityChange={(v) => setFilter("availability", v)}
                 onManifoldStyleChange={(v) => setFilter("manifoldStyle", v)}
                 onDeckTypeChange={(v) => setFilter("deckType", v)}
                 onSeatTypeChange={(v) => setFilter("seatType", v)}
