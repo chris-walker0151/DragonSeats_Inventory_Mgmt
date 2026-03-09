@@ -32,7 +32,8 @@ import {
 } from "@/lib/serialized-assets/constants";
 import { WAREHOUSES } from "@/lib/constants";
 import type { SerializedAssetDetail } from "@/lib/serialized-assets/types";
-import type { ProductCategory, LifecycleStatus, WarehouseLocation, BrandingStatus } from "@/generated/prisma/client";
+import type { ProductCategory, LifecycleStatus, WarehouseLocation, BrandingStatus, AssetAvailability } from "@/generated/prisma/client";
+import { AVAILABILITY_LABELS, ALL_AVAILABILITIES } from "@/lib/deployments/constants";
 import {
     fetchAssetDetail,
     deployAssetAction,
@@ -119,7 +120,7 @@ const EMPTY_FORM: AssetFormData = {
     brandingDescription: "",
     condition: "",
     benchStatus: "",
-    availability: "",
+    availability: "available",
     manifoldStyle: "",
     deckType: "",
     seatType: "",
@@ -285,7 +286,7 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                 brandingDescription: formData.brandingDescription || null,
                 condition: formData.condition || null,
                 benchStatus: formData.benchStatus || null,
-                availability: formData.availability || null,
+                availability: (formData.availability as AssetAvailability) || undefined,
                 manifoldStyle: formData.manifoldStyle || null,
                 deckType: formData.deckType || null,
                 seatType: formData.seatType || null,
@@ -621,7 +622,14 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                                                 <Input value={formData.benchStatus} onChange={(e) => updateField("benchStatus", e.target.value)} />
                                             </FormField>
                                             <FormField label="Availability">
-                                                <Input value={formData.availability} onChange={(e) => updateField("availability", e.target.value)} />
+                                                <Select value={formData.availability} onValueChange={(v) => updateField("availability", v)}>
+                                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                                    <SelectContent>
+                                                        {ALL_AVAILABILITIES.map((a) => (
+                                                            <SelectItem key={a} value={a}>{AVAILABILITY_LABELS[a]}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
                                             </FormField>
                                             <FormField label="DS Plate Number">
                                                 <Input value={formData.dsPlateNumber} onChange={(e) => updateField("dsPlateNumber", e.target.value)} />
@@ -649,7 +657,7 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                                         <>
                                             <Field label="Condition" value={detail!.condition} />
                                             <Field label="Status" value={detail!.benchStatus} />
-                                            <Field label="Availability" value={detail!.availability} />
+                                            <Field label="Availability" value={AVAILABILITY_LABELS[detail!.availability]} />
                                             <Field label="DS Plate #" value={detail!.dsPlateNumber} />
                                             <Field label="Manifold Style" value={detail!.manifoldStyle} />
                                             <Field label="Deck Type" value={detail!.deckType} />

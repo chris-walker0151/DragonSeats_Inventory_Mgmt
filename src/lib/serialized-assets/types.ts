@@ -9,6 +9,7 @@ import type {
     WarehouseLocation,
     BrandingStatus,
     BrandingType,
+    AssetAvailability,
 } from "@/generated/prisma/client";
 
 export type LocationFilter = WarehouseLocation | "all";
@@ -27,7 +28,7 @@ export interface SerializedAssetListItem {
     manufacturer: string | null;
     condition: string | null;
     benchStatus: string | null;
-    availability: string | null;
+    availability: AssetAvailability;
     manifoldStyle: string | null;
     deckType: string | null;
     seatType: string | null;
@@ -58,7 +59,7 @@ export interface SerializedAssetDetail {
     brandingDescription: string | null;
     condition: string | null;
     benchStatus: string | null;
-    availability: string | null;
+    availability: AssetAvailability;
     manifoldStyle: string | null;
     deckType: string | null;
     seatType: string | null;

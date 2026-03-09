@@ -9,6 +9,7 @@ import type {
     ProductCategory,
     LifecycleStatus,
     BrandingStatus,
+    AssetAvailability,
 } from "@/generated/prisma/client";
 import type { SerializedAssetListItem, SerializedAssetDetail } from "./types";
 
@@ -29,7 +30,7 @@ export interface AssetCreateInput {
     brandingDescription?: string | null;
     condition?: string | null;
     benchStatus?: string | null;
-    availability?: string | null;
+    availability?: AssetAvailability;
     manifoldStyle?: string | null;
     deckType?: string | null;
     seatType?: string | null;
@@ -191,6 +192,7 @@ export async function deployAsset(input: {
                 lifecycleStatus: "deployed_customer",
                 currentLocation: "deployed_customer",
                 customerId: input.customerId,
+                availability: "deployed",
             },
         }),
         prisma.deployment.create({
@@ -219,6 +221,7 @@ export async function returnAsset(input: {
                 lifecycleStatus: "in_warehouse_available",
                 currentLocation: input.returnLocation,
                 customerId: null,
+                availability: "available",
             },
         });
 

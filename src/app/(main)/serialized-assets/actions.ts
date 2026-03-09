@@ -163,6 +163,7 @@ export async function batchUpdateAssetsAction(input: {
             if (!targetName?.trim()) throw new Error("Team name is required");
             data = {
                 lifecycleStatus: "in_warehouse_reserved",
+                availability: "reserved",
                 deployedLocationName: `Reserved - ${targetName.trim()}`,
             };
             break;
@@ -171,12 +172,14 @@ export async function batchUpdateAssetsAction(input: {
             data = {
                 lifecycleStatus: "deployed_customer",
                 currentLocation: "deployed_customer",
+                availability: "deployed",
                 deployedLocationName: targetName.trim(),
             };
             break;
         case "refurbish":
             if (!targetName?.trim()) throw new Error("Manufacturer name is required");
             data = {
+                availability: "down",
                 deployedLocationName: `Refurbish - ${targetName.trim()}`,
             };
             break;
