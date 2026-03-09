@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ActivityHistory } from "@/components/shared";
 import {
     PRODUCT_CATEGORY_LABELS,
     LIFECYCLE_STATUS_LABELS,
@@ -804,6 +805,14 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                                     <span>Created {new Date(detail.createdAt).toLocaleDateString()}</span>
                                     <span>Updated {new Date(detail.updatedAt).toLocaleDateString()}</span>
                                 </div>
+                            )}
+
+                            {/* Activity History (view mode) */}
+                            {!isEditing && detail && (
+                                <ActivityHistory
+                                    entityType="SerializedAsset"
+                                    entityId={detail.id}
+                                />
                             )}
                         </div>
                     </>

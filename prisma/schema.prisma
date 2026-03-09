@@ -314,3 +314,18 @@ model ServiceTicket {
 
     @@map("service_tickets")
 }
+
+model AuditLog {
+    id         String   @id @default(uuid())
+    entityType String   @map("entity_type")
+    entityId   String   @map("entity_id")
+    action     String
+    changedBy  String?  @map("changed_by")
+    changeData Json?    @map("change_data")
+    summary    String?
+    createdAt  DateTime @default(now()) @map("created_at")
+
+    @@index([entityType, entityId])
+    @@index([createdAt])
+    @@map("audit_logs")
+}

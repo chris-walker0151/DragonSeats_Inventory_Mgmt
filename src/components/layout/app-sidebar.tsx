@@ -14,6 +14,7 @@ import {
     BookOpen,
     Wrench,
     ClipboardList,
+    History,
 } from "lucide-react";
 import {
     Sidebar,
@@ -39,6 +40,7 @@ const iconMap = {
     BookOpen,
     Wrench,
     ClipboardList,
+    History,
 } as const;
 
 interface NavItem {
@@ -99,6 +101,11 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                 label: "Data Dictionary",
                 href: "/data-dictionary",
                 icon: "BookOpen",
+            },
+            {
+                label: "Activity Log",
+                href: "/activity-log",
+                icon: "History",
             },
         ],
     },
