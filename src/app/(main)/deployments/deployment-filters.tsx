@@ -11,34 +11,33 @@ import {
 import {
     PRODUCT_CATEGORY_LABELS,
     ALL_PRODUCT_CATEGORIES,
-} from "@/lib/serialized-assets/constants";
-import type { ProductCategory } from "@/generated/prisma/client";
-import { Badge } from "@/components/ui/badge";
-import { Search, Truck } from "lucide-react";
+    AVAILABILITY_LABELS,
+    ALL_AVAILABILITIES,
+} from "@/lib/deployments/constants";
+import type { ProductCategory, AssetAvailability } from "@/generated/prisma/client";
+import { Search } from "lucide-react";
 
 type CategoryFilter = ProductCategory | "all";
-type ActiveFilter = "all" | "active" | "returned";
+type AvailabilityFilter = AssetAvailability | "all";
 
 interface DeploymentFiltersProps {
     categoryFilter: CategoryFilter;
-    activeFilter: ActiveFilter;
+    availabilityFilter: AvailabilityFilter;
     search: string;
     onCategoryChange: (v: CategoryFilter) => void;
-    onActiveChange: (v: ActiveFilter) => void;
+    onAvailabilityChange: (v: AvailabilityFilter) => void;
     onSearchChange: (v: string) => void;
     resultCount: number;
-    activeCount: number;
 }
 
 export function DeploymentFilters({
     categoryFilter,
-    activeFilter,
+    availabilityFilter,
     search,
     onCategoryChange,
-    onActiveChange,
+    onAvailabilityChange,
     onSearchChange,
     resultCount,
-    activeCount,
 }: DeploymentFiltersProps) {
     return (
         <div className="space-y-3">
@@ -46,11 +45,11 @@ export function DeploymentFilters({
                 <div className="relative w-full sm:w-64">
                     <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                        placeholder="Search asset, customer, notes..."
+                        placeholder="Search asset, customer, location..."
                         value={search}
                         onChange={(e) => onSearchChange(e.target.value)}
                         className="pl-9"
-                        aria-label="Search deployments"
+                        aria-label="Search assets"
                     />
                 </div>
 
@@ -72,29 +71,26 @@ export function DeploymentFilters({
                 </Select>
 
                 <Select
-                    value={activeFilter}
-                    onValueChange={(v) => onActiveChange(v as ActiveFilter)}
+                    value={availabilityFilter}
+                    onValueChange={(v) => onAvailabilityChange(v as AvailabilityFilter)}
                 >
                     <SelectTrigger size="sm">
-                        <SelectValue placeholder="Status" />
+                        <SelectValue placeholder="Availability" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Deployments</SelectItem>
-                        <SelectItem value="active">Active (Not Returned)</SelectItem>
-                        <SelectItem value="returned">Returned</SelectItem>
+                        <SelectItem value="all">All Availability</SelectItem>
+                        {ALL_AVAILABILITIES.map((avail) => (
+                            <SelectItem key={avail} value={avail}>
+                                {AVAILABILITY_LABELS[avail]}
+                            </SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
             </div>
 
-            <div className="flex items-center gap-3">
-                <p className="text-xs text-muted-foreground tabular-nums">
-                    {resultCount} deployment{resultCount !== 1 ? "s" : ""}
-                </p>
-                <Badge variant="info" className="text-[10px] gap-1">
-                    <Truck className="h-3 w-3" />
-                    {activeCount} currently active
-                </Badge>
-            </div>
+            <p className="text-xs text-muted-foreground tabular-nums">
+                {resultCount} asset{resultCount !== 1 ? "s" : ""}
+            </p>
         </div>
     );
 }

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dragon Seats - Deployment Action Workflows</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+  h1 {
+    text-align: center;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.025em;
+  }
+  .subtitle {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.875rem;
+    margin-bottom: 2.5rem;
+  }
+  .flowchart {
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* ── State nodes ── */
+  .state {
+    position: absolute;
+    width: 160px;
+    padding: 1.25rem 1rem;
+    border-radius: 16px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.1rem;
+    border: 2px solid;
+    cursor: default;
+    transition: transform 0.2s, box-shadow 0.2s;
+    z-index: 2;
+  }
+  .state:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(255,255,255,0.1);
+  }
+  .state .count-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 400;
+    opacity: 0.7;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .state-available {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: #22c55e;
+    color: #4ade80;
+    left: 50px;
+    top: 180px;
+  }
+  .state-reserved {
+    background: rgba(234, 179, 8, 0.15);
+    border-color: #eab308;
+    color: #facc15;
+    left: 370px;
+    top: 50px;
+  }
+  .state-deployed {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: #3b82f6;
+    color: #60a5fa;
+    left: 690px;
+    top: 180px;
+  }
+  .state-down {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: #ef4444;
+    color: #f87171;
+    left: 370px;
+    top: 380px;
+  }
+
+  /* ── SVG arrows ── */
+  svg.arrows {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .arrow-path {
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.4;
+    transition: opacity 0.3s, stroke-width 0.3s;
+  }
+  .arrow-head {
+    stroke-width: 2;
+    opacity: 0.4;
+    transition: opacity 0.3s;
+  }
+  .arrow-label {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    fill: #cbd5e1;
+    text-anchor: middle;
+    pointer-events: all;
+    cursor: default;
+  }
+  .arrow-label-bg {
+    fill: #1e293b;
+    rx: 4;
+    pointer-events: all;
+    cursor: default;
+  }
+
+  /* Highlight on hover */
+  .arrow-group:hover .arrow-path,
+  .arrow-group:hover .arrow-head {
+    opacity: 1;
+    stroke-width: 3.5;
+  }
+  .arrow-group:hover .arrow-label {
+    fill: #fff;
+  }
+
+  /* ── Action detail cards ── */
+  .actions-grid {
+    max-width: 900px;
+    margin: 3rem auto 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  @media (max-width: 768px) {
+    .actions-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .actions-grid { grid-template-columns: 1fr; }
+  }
+  .action-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .action-card:hover {
+    border-color: #64748b;
+    transform: translateY(-2px);
+  }
+  .action-card .action-name {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .action-card .action-icon {
+    width: 20px;
+    height: 20px;
+    opacity: 0.7;
+  }
+  .action-card .transition {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .transition .from-badge, .transition .to-badge {
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .from-badge.available, .to-badge.available { background: rgba(34,197,94,0.2); color: #4ade80; }
+  .from-badge.reserved, .to-badge.reserved { background: rgba(234,179,8,0.2); color: #facc15; }
+  .from-badge.deployed, .to-badge.deployed { background: rgba(59,130,246,0.2); color: #60a5fa; }
+  .from-badge.down, .to-badge.down { background: rgba(239,68,68,0.2); color: #f87171; }
+  .action-card .fields {
+    list-style: none;
+    font-size: 0.8rem;
+    color: #cbd5e1;
+  }
+  .action-card .fields li {
+    padding: 2px 0;
+    padding-left: 1rem;
+    position: relative;
+  }
+  .action-card .fields li::before {
+    content: "\2022";
+    position: absolute;
+    left: 0;
+    color: #64748b;
+  }
+
+  /* Color classes for arrow strokes */
+  .stroke-green { stroke: #22c55e; }
+  .stroke-yellow { stroke: #eab308; }
+  .stroke-blue { stroke: #3b82f6; }
+  .stroke-red { stroke: #ef4444; }
+  .stroke-purple { stroke: #a855f7; }
+  .stroke-orange { stroke: #f97316; }
+  .fill-green { fill: #22c55e; }
+  .fill-yellow { fill: #eab308; }
+  .fill-blue { fill: #3b82f6; }
+  .fill-red { fill: #ef4444; }
+  .fill-purple { fill: #a855f7; }
+  .fill-orange { fill: #f97316; }
+
+  .legend {
+    max-width: 900px;
+    margin: 2rem auto 0;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+</style>
+</head>
+<body>
+
+<h1>Deployment Action Workflows</h1>
+<p class="subtitle">Asset availability state machine &mdash; Dragon Seats Inventory Management</p>
+
+<div class="flowchart" style="height: 500px;">
+  <!-- SVG arrows layer -->
+  <svg class="arrows" viewBox="0 0 900 500">
+    <defs>
+      <marker id="ah-green" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#22c55e"/></marker>
+      <marker id="ah-yellow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eab308"/></marker>
+      <marker id="ah-blue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#3b82f6"/></marker>
+      <marker id="ah-red" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#ef4444"/></marker>
+      <marker id="ah-purple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#a855f7"/></marker>
+      <marker id="ah-orange" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#f97316"/></marker>
+    </defs>
+
+    <!-- 1. Reserve: Available → Reserved -->
+    <g class="arrow-group">
+      <path class="arrow-path stroke-green" d="M 210,200 C 280,130 340,100 370,95" marker-end="url(#ah-green)"/>
+      <rect class="arrow-label-bg" x="248" y="118" width="60" height="20"/>
+      <text class="arrow-label" x="278" y="132">Reserve</text>
+    </g>
+
+    <!-- 2. Deploy: Reserved → Deployed -->
+    <g class="arrow-group">
+      <path class="arrow-path stroke-yellow" d="M 530,95 C 600,100 660,130 690,200" marker-end="url(#ah-yellow)"/>
+      <rect class="arrow-label-bg" x="572" y="118" width="52" height="20"/>
+      <text class="arrow-label" x="598" y="132">Deploy</text>
+    </g>
+
+    <!-- 3. Return (Deployed → Available) -->
+    <g class="arrow-group">
+      <path class="arrow-path stroke-purple" d="M 690,240 C 600,320 350,320 200,240" marker-end="url(#ah-purple)"/>
+      <rect class="arrow-label-bg" x="410" y="290" width="52" height="20"/>
+      <text class="arrow-label" x="436" y="304">Return</text>
+    </g>
+
+    <!-- 3b. Return (Reserved → Available) -->
+    <g class="arrow-group">
+      <path class="arrow-path stroke-purple" d="M 370,110 C 300,130 240,160 200,190" marker-end="url(#ah-purple)" stroke-dasharray="6,4"/>
+      <rect class="arrow-label-bg" x="248" y="148" width="52" height="16"/>
+      <text class="arrow-label" x="274" y="160" font-size="9">Return</text>
+    </g>
+
+    <!-- 3c. Return (Down → Available) -->
+    <g class="arrow-group">
+      <path class="arrow-path stroke-purple" d="M 370,410 C 250,400 160,330 130,250" marker-end="url(#ah-purple)" stroke-dasharray="6,4"/>
+      <rect class="arrow-label-bg" x="195" y="348" width="52" height="16"/>
+      <text class="arrow-label" x="221" y="360" font-size="9">Return</text>
+    </g>
+
+    <!-- 4. Service: Available → Down -->
+    <g class="arrow-group">
+      <path class="arrow-path stroke-red" d="M 130,250 C 160,330 250,380 370,400" marker-end="url(#ah-red)"/>
+      <rect class="arrow-label-bg" x="188" y="318" width="56" height="20"/>
+      <text class="arrow-label" x="216" y="332">Service</text>
+    </g>
+
+    <!-- 5. Transfer: Deployed → Deployed (loop) -->
+    <g class="arrow-group">
+      <path class="arrow-path stroke-blue" d="M 850,210 C 880,250 880,280 850,250" marker-end="url(#ah-blue)"/>
+      <path class="arrow-path stroke-blue" d="M 820,180 C 870,140 890,190 850,210" marker-end="url(#ah-blue)"/>
+      <rect class="arrow-label-bg" x="838" y="150" width="62" height="20"/>
+      <text class="arrow-label" x="869" y="164">Transfer</text>
+    </g>
+
+    <!-- 6. Refurbish: Down → Down (loop) -->
+    <g class="arrow-group">
+      <path class="arrow-path stroke-orange" d="M 490,440 C 540,470 540,450 490,420" marker-end="url(#ah-orange)"/>
+      <path class="arrow-path stroke-orange" d="M 520,400 C 560,380 560,420 530,440" marker-end="url(#ah-orange)"/>
+      <rect class="arrow-label-bg" x="540" y="408" width="68" height="20"/>
+      <text class="arrow-label" x="574" y="422">Refurbish</text>
+    </g>
+  </svg>
+
+  <!-- State nodes -->
+  <div class="state state-available">
+    Available
+    <span class="count-label">Ready for use</span>
+  </div>
+  <div class="state state-reserved">
+    Reserved
+    <span class="count-label">Allocated to customer</span>
+  </div>
+  <div class="state state-deployed">
+    Deployed
+    <span class="count-label">In the field</span>
+  </div>
+  <div class="state state-down">
+    Down
+    <span class="count-label">Needs service</span>
+  </div>
+</div>
+
+<!-- Action details grid -->
+<div class="actions-grid">
+  <div class="action-card">
+    <div class="action-name" style="color:#4ade80;">
+      <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+      Reserve
+    </div>
+    <div class="transition">
+      <span class="from-badge available">Available</span>
+      <span>&rarr;</span>
+      <span class="to-badge reserved">Reserved</span>
+    </div>
+    <ul class="fields">
+      <li>Customer</li>
+      <li>Start Date</li>
+      <li>Away / Home</li>
+    </ul>
+  </div>
+
+  <div class="action-card">
+    <div class="action-name" style="color:#facc15;">
+      <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1z"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      Deploy
+    </div>
+    <div class="transition">
+      <span class="from-badge reserved">Reserved</span>
+      <span>&rarr;</span>
+      <span class="to-badge deployed">Deployed</span>
+    </div>
+    <ul class="fields">
+      <li>Pick-up Date</li>
+      <li>Transport Vendor</li>
+    </ul>
+  </div>
+
+  <div class="action-card">
+    <div class="action-name" style="color:#c084fc;">
+      <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      Return
+    </div>
+    <div class="transition">
+      <span class="from-badge deployed">Deployed</span>
+      <span class="from-badge reserved">Reserved</span>
+      <span class="from-badge down">Down</span>
+      <span>&rarr;</span>
+      <span class="to-badge available">Available</span>
+    </div>
+    <ul class="fields">
+      <li>Return Warehouse</li>
+      <li>Condition</li>
+      <li>Status</li>
+    </ul>
+  </div>
+
+  <div class="action-card">
+    <div class="action-name" style="color:#f87171;">
+      <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      Service
+    </div>
+    <div class="transition">
+      <span class="from-badge available">Available</span>
+      <span>&rarr;</span>
+      <span class="to-badge down">Down</span>
+    </div>
+    <ul class="fields">
+      <li>Condition</li>
+      <li>Notes</li>
+    </ul>
+  </div>
+
+  <div class="action-card">
+    <div class="action-name" style="color:#60a5fa;">
+      <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      Transfer
+    </div>
+    <div class="transition">
+      <span class="from-badge deployed">Deployed</span>
+      <span>&rarr;</span>
+      <span class="to-badge deployed">Deployed</span>
+      <span style="font-size:0.65rem; color:#64748b;">(new customer)</span>
+    </div>
+    <ul class="fields">
+      <li>Customer</li>
+      <li>Start Date</li>
+      <li>Away / Home</li>
+    </ul>
+  </div>
+
+  <div class="action-card">
+    <div class="action-name" style="color:#fb923c;">
+      <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg>
+      Refurbish
+    </div>
+    <div class="transition">
+      <span class="from-badge down">Down</span>
+      <span>&rarr;</span>
+      <span class="to-badge down">Down</span>
+      <span style="font-size:0.65rem; color:#64748b;">(tracks refurb)</span>
+    </div>
+    <ul class="fields">
+      <li>Manufacturer</li>
+      <li>Return Date</li>
+    </ul>
+  </div>
+</div>
+
+<div class="legend">
+  <p>Hover over arrows to highlight workflow paths. Dashed lines indicate alternate Return paths.</p>
+  <p style="margin-top: 0.5rem;">Happy path: Available &rarr; Reserve &rarr; Reserved &rarr; Deploy &rarr; Deployed &rarr; Return &rarr; Available</p>
+  <p>Service path: Available &rarr; Service &rarr; Down &rarr; (Refurbish) &rarr; Return &rarr; Available</p>
+</div>
+
+</body>
+</html>

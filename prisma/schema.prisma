@@ -109,6 +109,18 @@ enum ResolutionOutcome {
     returned_to_manufacturer
 }
 
+enum AssetAvailability {
+    available
+    reserved
+    deployed
+    down
+}
+
+enum GameType {
+    home
+    away
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model SkuMaster {
@@ -181,7 +193,7 @@ model SerializedAsset {
     // Extended bench fields (from Dragon Seats inventory sheet)
     condition           String?
     benchStatus         String?         @map("bench_status")
-    availability        String?
+    availability        AssetAvailability @default(available)
     manifoldStyle       String?         @map("manifold_style")
     deckType            String?         @map("deck_type")
     seatType            String?         @map("seat_type")
@@ -245,6 +257,8 @@ model Deployment {
     expectedReturnDate DateTime? @map("expected_return_date") @db.Date
     actualReturnDate   DateTime? @map("actual_return_date") @db.Date
     deploymentNotes    String?  @map("deployment_notes")
+    gameType           GameType? @map("game_type")
+    transportVendor    String?  @map("transport_vendor")
 
     createdAt DateTime @default(now()) @map("created_at")
     updatedAt DateTime @updatedAt @map("updated_at")

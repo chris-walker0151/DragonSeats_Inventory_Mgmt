@@ -38,7 +38,7 @@ export async function fetchDownedAssets(): Promise<DownedAssetListItem[]> {
     const openStatuses: TicketStatus[] = ["open", "in_progress", "pending_parts"];
 
     const assets = await prisma.serializedAsset.findMany({
-        where: { availability: "Down" },
+        where: { availability: "down" },
         include: {
             serviceTickets: {
                 where: { ticketStatus: { in: openStatuses } },
@@ -81,11 +81,11 @@ export async function fetchDownedEquipmentSummary(): Promise<DownedEquipmentSumm
 
     const [downedCount, downed30PlusCount] = await Promise.all([
         prisma.serializedAsset.count({
-            where: { availability: "Down" },
+            where: { availability: "down" },
         }),
         prisma.serializedAsset.count({
             where: {
-                availability: "Down",
+                availability: "down",
                 serviceTickets: {
                     some: {
                         ticketStatus: { in: openStatuses },
