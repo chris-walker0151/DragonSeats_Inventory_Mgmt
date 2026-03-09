@@ -24,6 +24,7 @@ enum LifecycleStatus {
     in_warehouse_available
     in_warehouse_reserved
     deployed_customer
+    down
     retired
 }
 

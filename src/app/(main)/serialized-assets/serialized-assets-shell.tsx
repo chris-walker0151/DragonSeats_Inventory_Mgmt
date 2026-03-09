@@ -22,7 +22,7 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { Upload, Plus, ChevronDown, Bookmark, Truck, Wrench, XCircle } from "lucide-react";
+import { Upload, Plus, ChevronDown, Bookmark, Truck, RotateCcw, AlertTriangle, ArrowLeftRight, Wrench } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type AssetFilters_ = {
@@ -215,16 +215,21 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
                             <Truck className="mr-2 h-4 w-4" />
                             Deploy
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleBatchAction("return")}>
+                            <RotateCcw className="mr-2 h-4 w-4" />
+                            Return
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleBatchAction("service")}>
+                            <AlertTriangle className="mr-2 h-4 w-4" />
+                            Service
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleBatchAction("transfer")}>
+                            <ArrowLeftRight className="mr-2 h-4 w-4" />
+                            Transfer
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleBatchAction("refurbish")}>
                             <Wrench className="mr-2 h-4 w-4" />
                             Refurbish
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            variant="destructive"
-                            onClick={() => handleBatchAction("retire")}
-                        >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Retire
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

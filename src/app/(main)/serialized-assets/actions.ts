@@ -18,7 +18,7 @@ import { prisma } from "@/lib/db";
 
 /* ── Valid enum values for import validation ── */
 const VALID_PRODUCT_CATEGORIES = new Set(["bench", "heater", "ac_unit", "compressor", "cooling_tower", "shader", "hot_box"]);
-const VALID_LIFECYCLE_STATUSES = new Set(["ordered", "in_warehouse_available", "in_warehouse_reserved", "deployed_customer", "retired"]);
+const VALID_LIFECYCLE_STATUSES = new Set(["ordered", "in_warehouse_available", "in_warehouse_reserved", "deployed_customer", "down", "retired"]);
 const VALID_WAREHOUSE_LOCATIONS = new Set(["cleveland_warehouse", "kansas_city_warehouse", "jacksonville_warehouse", "deployed_customer"]);
 const VALID_BRANDING_STATUSES = new Set(["unbranded", "branded"]);
 const VALID_BRANDING_TYPES = new Set(["team", "one_off_event", "other"]);
@@ -143,65 +143,264 @@ export async function updateAssetAction(id: string, input: AssetUpdateInput) {
 /**
  * Batch update multiple assets based on a selected action.
  */
-export type BatchAction = "reserve" | "deploy" | "refurbish" | "retire";
+export type BatchAction = "reserve" | "deploy" | "return" | "service" | "transfer" | "refurbish";
 
-export async function batchUpdateAssetsAction(input: {
+export interface BatchActionInput {
     assetIds: string[];
     action: BatchAction;
-    targetName?: string;
-}) {
-    const { assetIds, action, targetName } = input;
+    // Reserve & Transfer fields
+    customerId?: string;
+    startDate?: string;
+    gameType?: string;
+    // Deploy fields
+    pickupDate?: string;
+    transportVendor?: string;
+    // Return fields
+    returnLocation?: WarehouseLocation;
+    condition?: string;
+    // Service fields
+    notes?: string;
+    // Refurbish fields
+    manufacturer?: string;
+    returnDate?: string;
+}
+
+export async function batchUpdateAssetsAction(input: BatchActionInput) {
+    const { assetIds, action } = input;
 
     if (assetIds.length === 0) {
         throw new Error("No assets selected");
     }
 
-    let data: Record<string, unknown>;
+    let updatedCount = 0;
 
     switch (action) {
-        case "reserve":
-            if (!targetName?.trim()) throw new Error("Team name is required");
-            data = {
-                lifecycleStatus: "in_warehouse_reserved",
-                availability: "reserved",
-                deployedLocationName: `Reserved - ${targetName.trim()}`,
-            };
-            break;
-        case "deploy":
-            if (!targetName?.trim()) throw new Error("Team name is required");
-            data = {
-                lifecycleStatus: "deployed_customer",
-                currentLocation: "deployed_customer",
-                availability: "deployed",
-                deployedLocationName: targetName.trim(),
-            };
-            break;
-        case "refurbish":
-            if (!targetName?.trim()) throw new Error("Manufacturer name is required");
-            data = {
-                availability: "down",
-                deployedLocationName: `Refurbish - ${targetName.trim()}`,
-            };
-            break;
-        case "retire":
-            data = {
-                lifecycleStatus: "retired",
-                condition: "Retired",
-                deployedLocationName: "Retired",
-            };
-            break;
-    }
+        case "reserve": {
+            if (!input.customerId) throw new Error("Customer is required");
+            if (!input.startDate) throw new Error("Start date is required");
+            if (!input.gameType) throw new Error("Away/Home is required");
 
-    await prisma.serializedAsset.updateMany({
-        where: { id: { in: assetIds } },
-        data,
-    });
+            const customer = await prisma.customer.findUnique({
+                where: { id: input.customerId },
+                select: { teamName: true },
+            });
+            if (!customer) throw new Error("Customer not found");
+
+            for (const assetId of assetIds) {
+                await prisma.$transaction(async (tx) => {
+                    await tx.serializedAsset.update({
+                        where: { id: assetId },
+                        data: {
+                            lifecycleStatus: "in_warehouse_reserved",
+                            customerId: input.customerId,
+                            deployedLocationName: `Reserved - ${customer.teamName}`,
+                        },
+                    });
+                    await tx.deployment.create({
+                        data: {
+                            assetId,
+                            customerId: input.customerId!,
+                            deploymentDate: new Date(input.startDate!),
+                            gameType: input.gameType as "home" | "away",
+                        },
+                    });
+                });
+
+                // Auto-create pickup order service ticket
+                const asset = await prisma.serializedAsset.findUnique({
+                    where: { id: assetId },
+                    select: { currentLocation: true },
+                });
+                if (asset) {
+                    await createServiceTicket({
+                        assetId,
+                        hub: asset.currentLocation,
+                        problemCategory: "pickup_order",
+                        priority: "medium",
+                        detailedNotes: null,
+                        dateDownStarted: null,
+                    });
+                }
+                updatedCount++;
+            }
+            break;
+        }
+
+        case "deploy": {
+            if (!input.pickupDate) throw new Error("Pick-up date is required");
+            if (!input.transportVendor?.trim()) throw new Error("Transport vendor is required");
+
+            for (const assetId of assetIds) {
+                await prisma.$transaction(async (tx) => {
+                    await tx.serializedAsset.update({
+                        where: { id: assetId },
+                        data: {
+                            lifecycleStatus: "deployed_customer",
+                            currentLocation: "deployed_customer",
+                        },
+                    });
+
+                    // Find the active deployment to update with transport vendor
+                    const activeDeployment = await tx.deployment.findFirst({
+                        where: { assetId, actualReturnDate: null },
+                        orderBy: { deploymentDate: "desc" },
+                    });
+
+                    if (activeDeployment) {
+                        await tx.deployment.update({
+                            where: { id: activeDeployment.id },
+                            data: { transportVendor: input.transportVendor!.trim() },
+                        });
+                    }
+                });
+                updatedCount++;
+            }
+            break;
+        }
+
+        case "return": {
+            if (!input.returnLocation) throw new Error("Return warehouse is required");
+            if (!input.condition?.trim()) throw new Error("Condition is required");
+
+            for (const assetId of assetIds) {
+                await prisma.$transaction(async (tx) => {
+                    await tx.serializedAsset.update({
+                        where: { id: assetId },
+                        data: {
+                            lifecycleStatus: "in_warehouse_available",
+                            currentLocation: input.returnLocation,
+                            condition: input.condition!.trim(),
+                            customerId: null,
+                            deployedLocationName: null,
+                        },
+                    });
+
+                    // Close active deployment if one exists
+                    const activeDeployment = await tx.deployment.findFirst({
+                        where: { assetId, actualReturnDate: null },
+                        orderBy: { deploymentDate: "desc" },
+                    });
+
+                    if (activeDeployment) {
+                        await tx.deployment.update({
+                            where: { id: activeDeployment.id },
+                            data: { actualReturnDate: new Date() },
+                        });
+                    }
+                });
+                updatedCount++;
+            }
+            break;
+        }
+
+        case "service": {
+            if (!input.condition?.trim()) throw new Error("Condition is required");
+
+            for (const assetId of assetIds) {
+                const asset = await prisma.serializedAsset.update({
+                    where: { id: assetId },
+                    data: {
+                        lifecycleStatus: "down",
+                        condition: input.condition.trim(),
+                        maintenanceNotes: input.notes?.trim() || undefined,
+                    },
+                });
+
+                await createServiceTicket({
+                    assetId,
+                    hub: asset.currentLocation,
+                    problemCategory: "damage",
+                    priority: "high",
+                    detailedNotes: input.notes?.trim() || null,
+                    dateDownStarted: null,
+                });
+                updatedCount++;
+            }
+            break;
+        }
+
+        case "transfer": {
+            if (!input.customerId) throw new Error("Customer is required");
+            if (!input.startDate) throw new Error("Start date is required");
+            if (!input.gameType) throw new Error("Away/Home is required");
+
+            const transferCustomer = await prisma.customer.findUnique({
+                where: { id: input.customerId },
+                select: { teamName: true },
+            });
+            if (!transferCustomer) throw new Error("Customer not found");
+
+            for (const assetId of assetIds) {
+                await prisma.$transaction(async (tx) => {
+                    await tx.serializedAsset.update({
+                        where: { id: assetId },
+                        data: {
+                            customerId: input.customerId,
+                            deployedLocationName: transferCustomer.teamName,
+                        },
+                    });
+
+                    // Close current deployment if one exists
+                    const activeDeployment = await tx.deployment.findFirst({
+                        where: { assetId, actualReturnDate: null },
+                        orderBy: { deploymentDate: "desc" },
+                    });
+
+                    if (activeDeployment) {
+                        await tx.deployment.update({
+                            where: { id: activeDeployment.id },
+                            data: { actualReturnDate: new Date() },
+                        });
+                    }
+
+                    // Create new deployment for the transfer
+                    await tx.deployment.create({
+                        data: {
+                            assetId,
+                            customerId: input.customerId!,
+                            deploymentDate: new Date(input.startDate!),
+                            gameType: input.gameType as "home" | "away",
+                        },
+                    });
+                });
+                updatedCount++;
+            }
+            break;
+        }
+
+        case "refurbish": {
+            if (!input.manufacturer?.trim()) throw new Error("Manufacturer is required");
+            if (!input.returnDate) throw new Error("Return date is required");
+
+            for (const assetId of assetIds) {
+                const asset = await prisma.serializedAsset.findUnique({
+                    where: { id: assetId },
+                    select: { currentLocation: true },
+                });
+
+                if (asset) {
+                    await createServiceTicket({
+                        assetId,
+                        hub: asset.currentLocation,
+                        problemCategory: "refurbishment",
+                        priority: "medium",
+                        detailedNotes: `Manufacturer: ${input.manufacturer.trim()}`,
+                        targetCompletionDate: input.returnDate,
+                        dateDownStarted: null,
+                    });
+                }
+                updatedCount++;
+            }
+            break;
+        }
+    }
 
     revalidatePath("/serialized-assets");
     revalidatePath("/deployments");
     revalidatePath("/dashboard");
+    revalidatePath("/service-tickets");
 
-    return { updated: assetIds.length };
+    return { updated: updatedCount };
 }
 
 /** Map a free-text location string to a warehouse enum + deployed location name. */
