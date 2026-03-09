@@ -25,9 +25,10 @@ import { ArrowRight } from "lucide-react";
 
 interface TransferTableProps {
     transfers: TransferListItem[];
+    onRowClick?: (transfer: TransferListItem) => void;
 }
 
-export function TransferTable({ transfers }: TransferTableProps) {
+export function TransferTable({ transfers, onRowClick }: TransferTableProps) {
     if (transfers.length === 0) {
         return (
             <div className="rounded-md border p-12 text-center">
@@ -53,7 +54,11 @@ export function TransferTable({ transfers }: TransferTableProps) {
                 {transfers.map((t) => {
                     const isAsset = t.assetId !== null;
                     return (
-                        <TableRow key={t.id}>
+                        <TableRow
+                            key={t.id}
+                            className={onRowClick ? "cursor-pointer" : ""}
+                            onClick={() => onRowClick?.(t)}
+                        >
                             <TableCell>
                                 {isAsset ? (
                                     <span className="font-mono text-xs font-medium">
