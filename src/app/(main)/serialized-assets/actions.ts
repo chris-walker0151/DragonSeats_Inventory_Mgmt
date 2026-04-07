@@ -15,6 +15,7 @@ import { createServiceTicket } from "@/lib/service-tickets/queries";
 import type { SerializedAssetDetail } from "@/lib/serialized-assets/types";
 import type { ImportResult } from "@/lib/import/types";
 import { prisma } from "@/lib/db";
+import { logActivity, logBulkActivity, diffFields } from "@/lib/activity-log/queries";
 
 /* ── Valid enum values for import validation ── */
 const VALID_PRODUCT_CATEGORIES = new Set(["bench", "heater", "ac_unit", "compressor", "cooling_tower", "shader", "hot_box"]);
@@ -75,6 +76,11 @@ export async function fetchActiveCustomersAction() {
  */
 export async function createAssetAction(input: AssetCreateInput): Promise<{ id: string }> {
     const asset = await createSerializedAsset(input);
+    await logActivity({
+        recordId: asset.id,
+        collectionName: "serialized-assets",
+        summary: `Created asset ${input.serialNumber}`,
+    });
     revalidatePath("/serialized-assets");
     revalidatePath("/maintenance");
     revalidatePath("/dashboard");
@@ -90,15 +96,29 @@ export async function updateAssetAction(id: string, input: AssetUpdateInput) {
     // Fetch current asset state to detect transitions
     const currentAsset = await prisma.serializedAsset.findUnique({
         where: { id },
-        select: {
-            condition: true,
-            lifecycleStatus: true,
-            currentLocation: true,
-            serialNumber: true,
-        },
     });
 
     await updateSerializedAsset(id, input);
+
+    // Log field-level changes
+    if (currentAsset) {
+        const changes = diffFields(
+            currentAsset as unknown as Record<string, unknown>,
+            input as Record<string, unknown>,
+        );
+        if (changes.length > 0) {
+            await logBulkActivity(
+                changes.map((c) => ({
+                    recordId: id,
+                    collectionName: "serialized-assets",
+                    summary: `Changed ${c.fieldName} on ${currentAsset.serialNumber}`,
+                    fieldChanged: c.fieldName,
+                    oldValue: c.oldValue ?? undefined,
+                    newValue: c.newValue ?? undefined,
+                })),
+            );
+        }
+    }
 
     const inputRecord = input as Record<string, unknown>;
 
@@ -395,6 +415,18 @@ export async function batchUpdateAssetsAction(input: BatchActionInput) {
         }
     }
 
+    // Log batch action
+    if (updatedCount > 0) {
+        await logBulkActivity(
+            assetIds.slice(0, updatedCount).map((assetId) => ({
+                recordId: assetId,
+                collectionName: "serialized-assets",
+                method: "Manual / Web",
+                summary: `Batch ${action}: ${updatedCount} asset(s)`,
+            })),
+        );
+    }
+
     revalidatePath("/serialized-assets");
     revalidatePath("/deployments");
     revalidatePath("/dashboard");
@@ -523,10 +555,31 @@ export async function importSerializedAssetsAction(
                 create: { serialNumber, ...data },
             });
 
+            const afterRecord = await prisma.serializedAsset.findUnique({
+                where: { serialNumber },
+                select: { id: true },
+            });
+
             if (before) {
                 updated++;
+                if (afterRecord) {
+                    await logActivity({
+                        recordId: afterRecord.id,
+                        collectionName: "serialized-assets",
+                        method: "Import",
+                        summary: `Updated asset ${serialNumber} via import`,
+                    });
+                }
             } else {
                 created++;
+                if (afterRecord) {
+                    await logActivity({
+                        recordId: afterRecord.id,
+                        collectionName: "serialized-assets",
+                        method: "Import",
+                        summary: `Created asset ${serialNumber} via import`,
+                    });
+                }
             }
         } catch (err) {
             errors.push({
