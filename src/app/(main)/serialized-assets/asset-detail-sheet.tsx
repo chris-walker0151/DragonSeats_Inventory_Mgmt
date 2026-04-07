@@ -42,6 +42,9 @@ import {
     createAssetAction,
     updateAssetAction,
 } from "./actions";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ActivityTab } from "@/components/shared/activity-tab";
+import { fetchActivityForRecordAction } from "../shared-actions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Pencil, Check, ChevronsUpDown } from "lucide-react";
@@ -422,7 +425,14 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                             </SheetDescription>
                         </SheetHeader>
 
-                        <div className="space-y-6 px-1">
+                        <Tabs defaultValue="details" className="px-1">
+                            {!isEditing && detail && (
+                                <TabsList className="w-full mb-4">
+                                    <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
+                                    <TabsTrigger value="activity" className="flex-1">Activity</TabsTrigger>
+                                </TabsList>
+                            )}
+                            <TabsContent value="details" className="space-y-6 mt-0">
                             {/* General Info */}
                             <Section title="General">
                                 {isEditing ? (
@@ -805,7 +815,17 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                                     <span>Updated {new Date(detail.updatedAt).toLocaleDateString()}</span>
                                 </div>
                             )}
-                        </div>
+                            </TabsContent>
+                            {!isEditing && detail && (
+                                <TabsContent value="activity" className="mt-0">
+                                    <ActivityTab
+                                        recordId={detail.id}
+                                        collectionName="serialized-assets"
+                                        fetchAction={fetchActivityForRecordAction}
+                                    />
+                                </TabsContent>
+                            )}
+                        </Tabs>
                     </>
                 )}
             </SheetContent>

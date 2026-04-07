@@ -22,6 +22,9 @@ import {
 } from "@/lib/maintenance/constants";
 import type { MaintenanceAssetDetail } from "@/lib/maintenance/types";
 import { fetchMaintenanceDetailAction, updateMaintenanceInfoAction } from "./actions";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ActivityTab } from "@/components/shared/activity-tab";
+import { fetchActivityForRecordAction } from "../shared-actions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -107,7 +110,14 @@ export function MaintenanceDetailSheet({ assetId, open, onClose }: MaintenanceDe
                             </SheetDescription>
                         </SheetHeader>
 
-                        <div className="space-y-6 px-1">
+                        <Tabs defaultValue="details" className="px-1">
+                            {detail && (
+                                <TabsList className="w-full mb-4">
+                                    <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
+                                    <TabsTrigger value="activity" className="flex-1">Activity</TabsTrigger>
+                                </TabsList>
+                            )}
+                            <TabsContent value="details" className="space-y-6 mt-0">
                             {/* Asset Info (read-only) */}
                             <Section title="Asset Info">
                                 <Field label="Location" value={WAREHOUSE_LOCATION_LABELS[detail.currentLocation]} />
@@ -155,7 +165,17 @@ export function MaintenanceDetailSheet({ assetId, open, onClose }: MaintenanceDe
                                     </p>
                                 </Section>
                             )}
-                        </div>
+                            </TabsContent>
+                            {detail && (
+                                <TabsContent value="activity" className="mt-0">
+                                    <ActivityTab
+                                        recordId={detail.id}
+                                        collectionName="serialized-assets"
+                                        fetchAction={fetchActivityForRecordAction}
+                                    />
+                                </TabsContent>
+                            )}
+                        </Tabs>
                     </>
                 )}
             </SheetContent>

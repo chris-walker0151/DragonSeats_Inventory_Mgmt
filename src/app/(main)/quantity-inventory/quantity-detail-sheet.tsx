@@ -33,6 +33,9 @@ import {
     createQuantityItemAction,
     updateQuantityItemAction,
 } from "./actions";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ActivityTab } from "@/components/shared/activity-tab";
+import { fetchActivityForRecordAction } from "../shared-actions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AlertTriangle, Pencil } from "lucide-react";
@@ -193,7 +196,14 @@ export function QuantityDetailSheet({ itemId, open, onClose, mode: initialMode =
                             </SheetDescription>
                         </SheetHeader>
 
-                        <div className="space-y-6 px-1">
+                        <Tabs defaultValue="details" className="px-1">
+                            {!isEditing && item && (
+                                <TabsList className="w-full mb-4">
+                                    <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
+                                    <TabsTrigger value="activity" className="flex-1">Activity</TabsTrigger>
+                                </TabsList>
+                            )}
+                            <TabsContent value="details" className="space-y-6 mt-0">
                             {isEditing ? (
                                 <>
                                     <Section title="Item Details">
@@ -287,7 +297,17 @@ export function QuantityDetailSheet({ itemId, open, onClose, mode: initialMode =
                                     </div>
                                 </>
                             )}
-                        </div>
+                            </TabsContent>
+                            {!isEditing && item && (
+                                <TabsContent value="activity" className="mt-0">
+                                    <ActivityTab
+                                        recordId={item.id}
+                                        collectionName="quantity-inventory"
+                                        fetchAction={fetchActivityForRecordAction}
+                                    />
+                                </TabsContent>
+                            )}
+                        </Tabs>
                     </>
                 )}
             </SheetContent>

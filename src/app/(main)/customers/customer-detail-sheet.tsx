@@ -42,6 +42,9 @@ import {
     createCustomerAction,
     updateCustomerAction,
 } from "./actions";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ActivityTab } from "@/components/shared/activity-tab";
+import { fetchActivityForRecordAction } from "../shared-actions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Pencil } from "lucide-react";
@@ -239,7 +242,14 @@ export function CustomerDetailSheet({ customerId, open, onClose, mode: initialMo
                             </SheetDescription>
                         </SheetHeader>
 
-                        <div className="space-y-6 px-1">
+                        <Tabs defaultValue="details" className="px-1">
+                            {!isEditing && detail && (
+                                <TabsList className="w-full mb-4">
+                                    <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
+                                    <TabsTrigger value="activity" className="flex-1">Activity</TabsTrigger>
+                                </TabsList>
+                            )}
+                            <TabsContent value="details" className="space-y-6 mt-0">
                             <Section title="Organization">
                                 {isEditing ? (
                                     <div className="space-y-3">
@@ -382,7 +392,17 @@ export function CustomerDetailSheet({ customerId, open, onClose, mode: initialMo
                                     <span>Updated {new Date(detail.updatedAt).toLocaleDateString()}</span>
                                 </div>
                             )}
-                        </div>
+                            </TabsContent>
+                            {!isEditing && detail && (
+                                <TabsContent value="activity" className="mt-0">
+                                    <ActivityTab
+                                        recordId={detail.id}
+                                        collectionName="customers"
+                                        fetchAction={fetchActivityForRecordAction}
+                                    />
+                                </TabsContent>
+                            )}
+                        </Tabs>
                     </>
                 )}
             </SheetContent>
