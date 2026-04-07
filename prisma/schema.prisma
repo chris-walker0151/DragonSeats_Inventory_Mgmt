@@ -191,6 +191,9 @@ model SerializedAsset {
     brandingType        BrandingType?   @map("branding_type")
     brandingDescription String?         @map("branding_description")
 
+    // Kit grouping
+    kitName             String?         @map("kit_name")
+
     // Extended bench fields (from Dragon Seats inventory sheet)
     condition           String?
     benchStatus         String?         @map("bench_status")
@@ -313,4 +316,62 @@ model ServiceTicket {
     asset SerializedAsset @relation(fields: [assetId], references: [id])
 
     @@map("service_tickets")
+}
+
+// ─── Audit & Activity ───────────────────────────────────────────────────────
+
+model ActivityLog {
+    id             String  @id @default(uuid())
+    recordId       String  @map("record_id")
+    collectionName String  @map("collection_name")
+    userId         String? @map("user_id")
+    method         String  @default("Manual / Web")
+    summary        String
+    fieldChanged   String? @map("field_changed")
+    oldValue       String? @map("old_value")
+    newValue       String? @map("new_value")
+
+    createdAt DateTime @default(now()) @map("created_at")
+
+    @@index([recordId, collectionName])
+    @@index([createdAt])
+    @@map("activity_log")
+}
+
+// ─── Attachments ────────────────────────────────────────────────────────────
+
+model Attachment {
+    id             String @id @default(uuid())
+    recordId       String @map("record_id")
+    collectionName String @map("collection_name")
+    fileName       String @map("file_name")
+    fileUrl        String @map("file_url")
+    fileSize       Int    @map("file_size")
+    mimeType       String @map("mime_type")
+    uploadedBy     String? @map("uploaded_by")
+
+    createdAt DateTime @default(now()) @map("created_at")
+
+    @@index([recordId, collectionName])
+    @@map("attachments")
+}
+
+// ─── Saved Views ────────────────────────────────────────────────────────────
+
+model SavedView {
+    id             String  @id @default(uuid())
+    collectionSlug String  @map("collection_slug")
+    name           String
+    filters        String? @default("{}")
+    sortBy         String? @default("[]")
+    groupBy        String?  @map("group_by")
+    visibleColumns String? @map("visible_columns") @default("[]")
+    isDefault      Boolean @default(false) @map("is_default")
+    createdBy      String? @map("created_by")
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    @@index([collectionSlug])
+    @@map("saved_views")
 }
