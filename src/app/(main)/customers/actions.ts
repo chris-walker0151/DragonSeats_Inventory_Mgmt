@@ -6,6 +6,7 @@ import type { CustomerCreateInput, CustomerUpdateInput } from "@/lib/customers/q
 import type { CustomerDetail } from "@/lib/customers/types";
 import type { ImportResult } from "@/lib/import/types";
 import { prisma } from "@/lib/db";
+import { logActivity, diffFields, logBulkActivity } from "@/lib/activity-log/queries";
 
 /* ── Valid enum values for import validation ── */
 const VALID_LEAGUES = new Set(["nfl", "ncaa_fbs", "ncaa_fcs", "other"]);
@@ -27,6 +28,11 @@ export async function fetchCustomerDetailAction(
  */
 export async function createCustomerAction(input: CustomerCreateInput): Promise<{ id: string }> {
     const customer = await createCustomer(input);
+    await logActivity({
+        recordId: customer.id,
+        collectionName: "customers",
+        summary: `Created customer ${input.teamName}`,
+    });
     revalidatePath("/customers");
     revalidatePath("/dashboard");
     return { id: customer.id };
@@ -36,7 +42,26 @@ export async function createCustomerAction(input: CustomerCreateInput): Promise<
  * Update an existing customer.
  */
 export async function updateCustomerAction(id: string, input: CustomerUpdateInput) {
+    const before = await prisma.customer.findUnique({ where: { id } });
     await updateCustomer(id, input);
+    if (before) {
+        const changes = diffFields(
+            before as unknown as Record<string, unknown>,
+            input as Record<string, unknown>,
+        );
+        if (changes.length > 0) {
+            await logBulkActivity(
+                changes.map((c) => ({
+                    recordId: id,
+                    collectionName: "customers",
+                    summary: `Changed ${c.fieldName} on ${before.teamName}`,
+                    fieldChanged: c.fieldName,
+                    oldValue: c.oldValue ?? undefined,
+                    newValue: c.newValue ?? undefined,
+                })),
+            );
+        }
+    }
     revalidatePath("/customers");
     revalidatePath("/dashboard");
 }
@@ -99,6 +124,7 @@ export async function importCustomersAction(
             };
 
             let wasUpdate = false;
+            let recordId = "";
             await prisma.$transaction(async (tx) => {
                 const existing = await tx.customer.findFirst({
                     where: { teamName: { equals: teamName, mode: "insensitive" } },
@@ -110,11 +136,22 @@ export async function importCustomersAction(
                         data,
                     });
                     wasUpdate = true;
+                    recordId = existing.id;
                 } else {
-                    await tx.customer.create({
+                    const newCustomer = await tx.customer.create({
                         data: { teamName, ...data },
                     });
+                    recordId = newCustomer.id;
                 }
+            });
+
+            await logActivity({
+                recordId,
+                collectionName: "customers",
+                method: "Import",
+                summary: wasUpdate
+                    ? `Updated customer ${teamName} via import`
+                    : `Created customer ${teamName} via import`,
             });
 
             if (wasUpdate) {
