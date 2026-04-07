@@ -80,6 +80,7 @@ export async function fetchSerializedAssetsList(): Promise<SerializedAssetListIt
         deckType: a.deckType,
         seatType: a.seatType,
         wheelType: a.wheelType,
+        kitName: a.kitName,
         deployedLocationName: a.deployedLocationName,
     }));
 }
@@ -127,6 +128,7 @@ export async function fetchSerializedAssetDetail(
         brandingStatus: asset.brandingStatus,
         brandingType: asset.brandingType,
         brandingDescription: asset.brandingDescription,
+        kitName: asset.kitName,
         condition: asset.condition,
         benchStatus: asset.benchStatus,
         availability: asset.availability,

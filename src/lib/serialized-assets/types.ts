@@ -33,6 +33,7 @@ export interface SerializedAssetListItem {
     deckType: string | null;
     seatType: string | null;
     wheelType: string | null;
+    kitName: string | null;
     deployedLocationName: string | null;
 }
 
@@ -57,6 +58,7 @@ export interface SerializedAssetDetail {
     brandingStatus: BrandingStatus | null;
     brandingType: BrandingType | null;
     brandingDescription: string | null;
+    kitName: string | null;
     condition: string | null;
     benchStatus: string | null;
     availability: AssetAvailability;
