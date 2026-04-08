@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
     Sheet,
     SheetContent,
@@ -8,6 +8,7 @@ import {
     SheetTitle,
     SheetDescription,
 } from "@/components/ui/sheet";
+import { QRCodeSVG } from "qrcode.react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -798,6 +799,11 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                                 </div>
                             )}
 
+                            {/* QR Code (view mode only) */}
+                            {!isEditing && detail && (
+                                <AssetQRCode assetId={detail.id} serialNumber={detail.serialNumber} />
+                            )}
+
                             {/* Timestamps (view mode) */}
                             {!isEditing && detail && (
                                 <div className="flex items-center justify-between text-[10px] text-muted-foreground/60 pb-4">
@@ -841,6 +847,67 @@ function FormField({ label, children }: { label: string; children: React.ReactNo
         <div className="space-y-1.5">
             <Label className="text-xs">{label}</Label>
             {children}
+        </div>
+    );
+}
+
+function AssetQRCode({ assetId, serialNumber }: { assetId: string; serialNumber: string }) {
+    const svgRef = useRef<SVGSVGElement>(null);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+    const profileUrl = `${baseUrl}/serialized-assets/${assetId}`;
+
+    function handleDownload() {
+        const svg = svgRef.current;
+        if (!svg) return;
+
+        const size = 256;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        const svgData = new XMLSerializer().serializeToString(svg);
+        const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, size, size);
+            ctx.drawImage(img, 0, 0, size, size);
+            URL.revokeObjectURL(url);
+            const pngUrl = canvas.toDataURL("image/png");
+            const a = document.createElement("a");
+            a.href = pngUrl;
+            a.download = `asset-${serialNumber}.png`;
+            a.click();
+        };
+        img.src = url;
+    }
+
+    return (
+        <div>
+            <Separator />
+            <h3 className="mt-4 mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                QR Code
+            </h3>
+            <div className="flex flex-col items-center gap-3 pb-2">
+                <div className="rounded-lg border p-3 bg-white">
+                    <QRCodeSVG
+                        ref={svgRef}
+                        value={profileUrl}
+                        size={160}
+                        level="M"
+                        includeMargin={false}
+                    />
+                </div>
+                <p className="text-[10px] text-muted-foreground text-center break-all max-w-[220px]">
+                    {profileUrl}
+                </p>
+                <Button variant="outline" size="sm" onClick={handleDownload} className="w-full">
+                    Download QR Code
+                </Button>
+            </div>
         </div>
     );
 }
