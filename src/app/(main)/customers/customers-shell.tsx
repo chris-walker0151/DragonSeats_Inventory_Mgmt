@@ -15,6 +15,21 @@ import { importCustomersAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Upload, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ExportMenu } from "@/components/shared/export-menu";
+import type { ExportColumn } from "@/lib/export/excel-csv";
+
+const EXPORT_COLUMNS: ExportColumn[] = [
+    { key: "teamName", label: "Team Name" },
+    { key: "league", label: "League" },
+    { key: "organizationLegalName", label: "Organization" },
+    { key: "primaryContactName", label: "Contact Name" },
+    { key: "primaryContactEmail", label: "Contact Email" },
+    { key: "primaryContactPhone", label: "Contact Phone" },
+    { key: "stadiumName", label: "Stadium" },
+    { key: "contractType", label: "Contract Type" },
+    { key: "activeStatus", label: "Status" },
+    { key: "deployedAssetCount", label: "Deployed Assets" },
+];
 
 type CustomerFilters_ = {
     league: string;
@@ -32,7 +47,7 @@ export function CustomersShell({ customers }: { customers: CustomerListItem[] })
     const [sheetMode, setSheetMode] = useState<"view" | "create">("view");
     const [importOpen, setImportOpen] = useState(false);
 
-    const { paginated, page, totalPages, totalFiltered, setPage } =
+    const { paginated, filtered, page, totalPages, totalFiltered, setPage } =
         usePaginatedFilter({
             items: customers,
             filters,
@@ -68,6 +83,11 @@ export function CustomersShell({ customers }: { customers: CustomerListItem[] })
     return (
         <>
             <div className="flex justify-end gap-2">
+                <ExportMenu
+                    data={filtered as unknown as Record<string, unknown>[]}
+                    columns={EXPORT_COLUMNS}
+                    filenamePrefix="customers"
+                />
                 <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
                     <Upload className="mr-2 h-4 w-4" />
                     Import

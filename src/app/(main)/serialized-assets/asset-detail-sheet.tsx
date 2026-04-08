@@ -42,9 +42,13 @@ import {
     createAssetAction,
     updateAssetAction,
 } from "./actions";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ActivityTab } from "@/components/shared/activity-tab";
+import { fetchActivityForRecordAction } from "../shared-actions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Pencil, Check, ChevronsUpDown } from "lucide-react";
+import { Pencil, Check, ChevronsUpDown, FileDown } from "lucide-react";
+import { exportRecordToPdf } from "@/lib/export/pdf";
 import {
     Command,
     CommandEmpty,
@@ -408,9 +412,53 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                                             {LIFECYCLE_STATUS_LABELS[detail!.lifecycleStatus]}
                                         </Badge>
                                         {sheetMode === "view" && (
-                                            <Button variant="ghost" size="icon" className="ml-auto h-7 w-7" onClick={handleEdit}>
-                                                <Pencil className="h-3.5 w-3.5" />
-                                            </Button>
+                                            <div className="ml-auto flex items-center gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-7 w-7"
+                                                    title="Export as PDF"
+                                                    onClick={() => {
+                                                        if (!detail) return;
+                                                        exportRecordToPdf(
+                                                            `Asset ${detail.serialNumber}`,
+                                                            [
+                                                                {
+                                                                    heading: "General",
+                                                                    fields: [
+                                                                        { label: "Serial Number", value: detail.serialNumber },
+                                                                        { label: "Category", value: PRODUCT_CATEGORY_LABELS[detail.productCategory] },
+                                                                        { label: "Model", value: detail.productTypeModel ?? "" },
+                                                                        { label: "Status", value: LIFECYCLE_STATUS_LABELS[detail.lifecycleStatus] },
+                                                                        { label: "Location", value: WAREHOUSE_LOCATION_LABELS[detail.currentLocation] },
+                                                                        { label: "Availability", value: AVAILABILITY_LABELS[detail.availability] ?? detail.availability },
+                                                                        { label: "Customer", value: detail.customer?.teamName ?? "" },
+                                                                    ],
+                                                                },
+                                                                {
+                                                                    heading: "Specifications",
+                                                                    fields: [
+                                                                        { label: "Manufacturer", value: detail.manufacturer ?? "" },
+                                                                        { label: "Condition", value: detail.condition ?? "" },
+                                                                        { label: "Bench Status", value: detail.benchStatus ?? "" },
+                                                                        { label: "Manifold Style", value: detail.manifoldStyle ?? "" },
+                                                                        { label: "Deck Type", value: detail.deckType ?? "" },
+                                                                        { label: "Seat Type", value: detail.seatType ?? "" },
+                                                                        { label: "Wheel Type", value: detail.wheelType ?? "" },
+                                                                        { label: "Kit", value: detail.kitName ?? "" },
+                                                                    ],
+                                                                },
+                                                            ],
+                                                            `asset-${detail.serialNumber}`,
+                                                        );
+                                                    }}
+                                                >
+                                                    <FileDown className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleEdit}>
+                                                    <Pencil className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
                                         )}
                                     </>
                                 )}
@@ -422,7 +470,14 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                             </SheetDescription>
                         </SheetHeader>
 
-                        <div className="space-y-6 px-1">
+                        <Tabs defaultValue="details" className="px-1">
+                            {!isEditing && detail && (
+                                <TabsList className="w-full mb-4">
+                                    <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
+                                    <TabsTrigger value="activity" className="flex-1">Activity</TabsTrigger>
+                                </TabsList>
+                            )}
+                            <TabsContent value="details" className="space-y-6 mt-0">
                             {/* General Info */}
                             <Section title="General">
                                 {isEditing ? (
@@ -805,7 +860,17 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                                     <span>Updated {new Date(detail.updatedAt).toLocaleDateString()}</span>
                                 </div>
                             )}
-                        </div>
+                            </TabsContent>
+                            {!isEditing && detail && (
+                                <TabsContent value="activity" className="mt-0">
+                                    <ActivityTab
+                                        recordId={detail.id}
+                                        collectionName="serialized-assets"
+                                        fetchAction={fetchActivityForRecordAction}
+                                    />
+                                </TabsContent>
+                            )}
+                        </Tabs>
                     </>
                 )}
             </SheetContent>

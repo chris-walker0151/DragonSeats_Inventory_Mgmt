@@ -7,6 +7,22 @@ import { TransferFilters } from "./transfer-filters";
 import { TransferTable } from "./transfer-table";
 import { Pagination } from "@/components/shared";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
+import { ExportMenu } from "@/components/shared/export-menu";
+import type { ExportColumn } from "@/lib/export/excel-csv";
+
+const EXPORT_COLUMNS: ExportColumn[] = [
+    { key: "assetSerialNumber", label: "Serial Number" },
+    { key: "assetProductCategory", label: "Category" },
+    { key: "quantityItemCategory", label: "Quantity Item" },
+    { key: "quantity", label: "Quantity" },
+    { key: "originLocation", label: "Origin" },
+    { key: "destinationLocation", label: "Destination" },
+    { key: "transferDate", label: "Transfer Date" },
+    { key: "transferStatus", label: "Status" },
+    { key: "transferInitiatedBy", label: "Initiated By" },
+    { key: "transferReceivedBy", label: "Received By" },
+    { key: "notes", label: "Notes" },
+];
 
 type StatusFilter = TransferStatus | "all";
 type OriginFilter = WarehouseLocation | "all";
@@ -22,7 +38,7 @@ export function TransfersShell({ transfers }: { transfers: TransferListItem[] })
         origin: "all",
     });
 
-    const { paginated, page, totalPages, totalFiltered, setPage } =
+    const { paginated, filtered, page, totalPages, totalFiltered, setPage } =
         usePaginatedFilter({
             items: transfers,
             filters,
@@ -38,6 +54,14 @@ export function TransfersShell({ transfers }: { transfers: TransferListItem[] })
 
     return (
         <>
+            <div className="flex justify-end gap-2">
+                <ExportMenu
+                    data={filtered as unknown as Record<string, unknown>[]}
+                    columns={EXPORT_COLUMNS}
+                    filenamePrefix="transfers"
+                />
+            </div>
+
             <TransferFilters
                 statusFilter={filters.status as StatusFilter}
                 originFilter={filters.origin as OriginFilter}

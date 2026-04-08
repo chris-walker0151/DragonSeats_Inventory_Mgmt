@@ -24,6 +24,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Upload, Plus, ChevronDown, Bookmark, Truck, RotateCcw, AlertTriangle, ArrowLeftRight, Wrench } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ExportMenu } from "@/components/shared/export-menu";
+import type { ExportColumn } from "@/lib/export/excel-csv";
+
+const EXPORT_COLUMNS: ExportColumn[] = [
+    { key: "serialNumber", label: "Serial Number" },
+    { key: "productCategory", label: "Category" },
+    { key: "manufacturer", label: "Manufacturer" },
+    { key: "condition", label: "Condition" },
+    { key: "availability", label: "Availability" },
+    { key: "currentLocation", label: "Location" },
+    { key: "manifoldStyle", label: "Manifold" },
+    { key: "deckType", label: "Deck" },
+    { key: "seatType", label: "Seat" },
+    { key: "wheelType", label: "Wheel" },
+    { key: "kitName", label: "Kit" },
+    { key: "deployedLocationName", label: "Deployed Location" },
+];
 
 type AssetFilters_ = {
     location: string;
@@ -89,7 +106,7 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
         wheelType: uniqueSorted(assets, "wheelType"),
     }), [assets]);
 
-    const { paginated, page, totalPages, totalFiltered, setPage } =
+    const { paginated, filtered, page, totalPages, totalFiltered, setPage } =
         usePaginatedFilter({
             items: assets,
             filters,
@@ -182,6 +199,11 @@ export function SerializedAssetsShell({ assets }: { assets: SerializedAssetListI
     return (
         <>
             <div className="flex justify-end gap-2">
+                <ExportMenu
+                    data={filtered as unknown as Record<string, unknown>[]}
+                    columns={EXPORT_COLUMNS}
+                    filenamePrefix="serialized-assets"
+                />
                 <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
                     <Upload className="mr-2 h-4 w-4" />
                     Import
