@@ -14,6 +14,18 @@ import { importQuantityInventoryAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Upload, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ExportMenu } from "@/components/shared/export-menu";
+import type { ExportColumn } from "@/lib/export/excel-csv";
+
+const EXPORT_COLUMNS: ExportColumn[] = [
+    { key: "itemCategory", label: "Category" },
+    { key: "itemVariant", label: "Variant" },
+    { key: "location", label: "Location" },
+    { key: "quantityOnHand", label: "Qty on Hand" },
+    { key: "reorderLevel", label: "Reorder Level" },
+    { key: "lastCountDate", label: "Last Count Date" },
+    { key: "responsiblePerson", label: "Responsible Person" },
+];
 
 type QuantityFilters_ = {
     location: string;
@@ -78,6 +90,11 @@ export function QuantityShell({ items }: { items: QuantityInventoryListItem[] })
     return (
         <>
             <div className="flex justify-end gap-2">
+                <ExportMenu
+                    data={filtered as unknown as Record<string, unknown>[]}
+                    columns={EXPORT_COLUMNS}
+                    filenamePrefix="bulk-inventory"
+                />
                 <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
                     <Upload className="mr-2 h-4 w-4" />
                     Import

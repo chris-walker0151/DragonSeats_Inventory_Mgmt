@@ -17,6 +17,20 @@ import { ITEMS_PER_PAGE } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ExportMenu } from "@/components/shared/export-menu";
+import type { ExportColumn } from "@/lib/export/excel-csv";
+
+const EXPORT_COLUMNS: ExportColumn[] = [
+    { key: "serialNumber", label: "Serial Number" },
+    { key: "productTypeModel", label: "Product Type" },
+    { key: "availability", label: "Availability" },
+    { key: "benchStatus", label: "Bench Status" },
+    { key: "condition", label: "Condition" },
+    { key: "currentLocation", label: "Location" },
+    { key: "downedDate", label: "Downed Date" },
+    { key: "daysDown", label: "Days Down" },
+    { key: "assignedTechnician", label: "Assigned Technician" },
+];
 
 type DownedFilters_ = {
     location: string;
@@ -66,7 +80,7 @@ export function ServiceTicketsShell({
         condition: uniqueSorted(tileFiltered, "condition"),
     }), [tileFiltered]);
 
-    const { paginated, page, totalPages, totalFiltered, setPage } =
+    const { paginated, filtered, page, totalPages, totalFiltered, setPage } =
         usePaginatedFilter({
             items: tileFiltered,
             filters,
@@ -114,6 +128,11 @@ export function ServiceTicketsShell({
             />
 
             <div className="flex justify-end gap-2">
+                <ExportMenu
+                    data={filtered as unknown as Record<string, unknown>[]}
+                    columns={EXPORT_COLUMNS}
+                    filenamePrefix="service-tickets"
+                />
                 <Button size="sm" onClick={handleOpenCreate}>
                     <Plus className="mr-2 h-4 w-4" />
                     New Ticket

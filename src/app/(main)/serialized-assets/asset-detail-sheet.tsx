@@ -47,7 +47,8 @@ import { ActivityTab } from "@/components/shared/activity-tab";
 import { fetchActivityForRecordAction } from "../shared-actions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Pencil, Check, ChevronsUpDown } from "lucide-react";
+import { Pencil, Check, ChevronsUpDown, FileDown } from "lucide-react";
+import { exportRecordToPdf } from "@/lib/export/pdf";
 import {
     Command,
     CommandEmpty,
@@ -411,9 +412,53 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                                             {LIFECYCLE_STATUS_LABELS[detail!.lifecycleStatus]}
                                         </Badge>
                                         {sheetMode === "view" && (
-                                            <Button variant="ghost" size="icon" className="ml-auto h-7 w-7" onClick={handleEdit}>
-                                                <Pencil className="h-3.5 w-3.5" />
-                                            </Button>
+                                            <div className="ml-auto flex items-center gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-7 w-7"
+                                                    title="Export as PDF"
+                                                    onClick={() => {
+                                                        if (!detail) return;
+                                                        exportRecordToPdf(
+                                                            `Asset ${detail.serialNumber}`,
+                                                            [
+                                                                {
+                                                                    heading: "General",
+                                                                    fields: [
+                                                                        { label: "Serial Number", value: detail.serialNumber },
+                                                                        { label: "Category", value: PRODUCT_CATEGORY_LABELS[detail.productCategory] },
+                                                                        { label: "Model", value: detail.productTypeModel ?? "" },
+                                                                        { label: "Status", value: LIFECYCLE_STATUS_LABELS[detail.lifecycleStatus] },
+                                                                        { label: "Location", value: WAREHOUSE_LOCATION_LABELS[detail.currentLocation] },
+                                                                        { label: "Availability", value: AVAILABILITY_LABELS[detail.availability] ?? detail.availability },
+                                                                        { label: "Customer", value: detail.customer?.teamName ?? "" },
+                                                                    ],
+                                                                },
+                                                                {
+                                                                    heading: "Specifications",
+                                                                    fields: [
+                                                                        { label: "Manufacturer", value: detail.manufacturer ?? "" },
+                                                                        { label: "Condition", value: detail.condition ?? "" },
+                                                                        { label: "Bench Status", value: detail.benchStatus ?? "" },
+                                                                        { label: "Manifold Style", value: detail.manifoldStyle ?? "" },
+                                                                        { label: "Deck Type", value: detail.deckType ?? "" },
+                                                                        { label: "Seat Type", value: detail.seatType ?? "" },
+                                                                        { label: "Wheel Type", value: detail.wheelType ?? "" },
+                                                                        { label: "Kit", value: detail.kitName ?? "" },
+                                                                    ],
+                                                                },
+                                                            ],
+                                                            `asset-${detail.serialNumber}`,
+                                                        );
+                                                    }}
+                                                >
+                                                    <FileDown className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleEdit}>
+                                                    <Pencil className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
                                         )}
                                     </>
                                 )}

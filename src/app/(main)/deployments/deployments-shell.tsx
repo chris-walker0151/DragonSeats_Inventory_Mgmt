@@ -23,6 +23,22 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
+import { ExportMenu } from "@/components/shared/export-menu";
+import type { ExportColumn } from "@/lib/export/excel-csv";
+
+const EXPORT_COLUMNS: ExportColumn[] = [
+    { key: "serialNumber", label: "Serial Number" },
+    { key: "productCategory", label: "Category" },
+    { key: "productTypeModel", label: "Product Type" },
+    { key: "availability", label: "Availability" },
+    { key: "currentLocation", label: "Location" },
+    { key: "condition", label: "Condition" },
+    { key: "manufacturer", label: "Manufacturer" },
+    { key: "customerName", label: "Customer" },
+    { key: "deployedLocationName", label: "Deployed Location" },
+    { key: "deploymentDate", label: "Deployment Date" },
+    { key: "expectedReturnDate", label: "Expected Return" },
+];
 
 type DeploymentFilters_ = {
     category: string;
@@ -49,7 +65,7 @@ export function DeploymentsShell({
     // Tile filter (summary card click)
     const [tileFilter, setTileFilter] = useState<AvailabilityTileFilter>("all");
 
-    const { paginated, page, totalPages, totalFiltered, setPage } =
+    const { paginated, filtered, page, totalPages, totalFiltered, setPage } =
         usePaginatedFilter({
             items: assets,
             filters: {
@@ -164,6 +180,11 @@ export function DeploymentsShell({
             />
 
             <div className="flex items-center justify-between gap-3">
+                <ExportMenu
+                    data={filtered as unknown as Record<string, unknown>[]}
+                    columns={EXPORT_COLUMNS}
+                    filenamePrefix="deployments"
+                />
                 <DeploymentFilters
                     categoryFilter={filters.category as CategoryFilter}
                     availabilityFilter={filters.availability as AvailabilityFilter}
