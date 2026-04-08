@@ -77,6 +77,8 @@ export interface SerializedAssetDetail {
     amps: number | null;
     lastRefurbishedDate: Date | null;
     maintenanceNotes: string | null;
+    qrCodeUrl: string | null;
+    qrCodePayload: string | null;
     createdAt: Date;
     updatedAt: Date;
     customer: { id: string; teamName: string } | null;

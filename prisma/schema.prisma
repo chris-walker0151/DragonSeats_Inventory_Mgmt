@@ -216,6 +216,10 @@ model SerializedAsset {
     btuRating Int? @map("btu_rating")
     amps      Int? @map("amps")
 
+    // QR code fields
+    qrCodeUrl     String? @map("qr_code_url")     // base64 PNG data URL
+    qrCodePayload String? @map("qr_code_payload")  // deep link URL encoded in the QR
+
     // Maintenance fields
     lastRefurbishedDate DateTime? @map("last_refurbished_date") @db.Date
     maintenanceNotes    String?   @map("maintenance_notes")

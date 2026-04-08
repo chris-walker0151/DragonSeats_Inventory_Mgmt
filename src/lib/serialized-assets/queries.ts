@@ -147,6 +147,8 @@ export async function fetchSerializedAssetDetail(
         amps: asset.amps,
         lastRefurbishedDate: asset.lastRefurbishedDate,
         maintenanceNotes: asset.maintenanceNotes,
+        qrCodeUrl: asset.qrCodeUrl,
+        qrCodePayload: asset.qrCodePayload,
         createdAt: asset.createdAt,
         updatedAt: asset.updatedAt,
         customer: asset.customer,

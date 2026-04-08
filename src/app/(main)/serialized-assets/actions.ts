@@ -15,6 +15,7 @@ import { createServiceTicket } from "@/lib/service-tickets/queries";
 import type { SerializedAssetDetail } from "@/lib/serialized-assets/types";
 import type { ImportResult } from "@/lib/import/types";
 import { prisma } from "@/lib/db";
+import { generateQRCode } from "@/lib/qr/generate";
 
 /* ── Valid enum values for import validation ── */
 const VALID_PRODUCT_CATEGORIES = new Set(["bench", "heater", "ac_unit", "compressor", "cooling_tower", "shader", "hot_box"]);
@@ -71,14 +72,65 @@ export async function fetchActiveCustomersAction() {
 }
 
 /**
- * Create a new serialized asset.
+ * Create a new serialized asset and immediately generate its QR code.
  */
 export async function createAssetAction(input: AssetCreateInput): Promise<{ id: string }> {
     const asset = await createSerializedAsset(input);
+
+    try {
+        const { dataUrl, payload } = await generateQRCode(asset.id);
+        await prisma.serializedAsset.update({
+            where: { id: asset.id },
+            data: { qrCodeUrl: dataUrl, qrCodePayload: payload },
+        });
+    } catch {
+        // QR generation failure is non-fatal — asset is created, QR can be regenerated
+    }
+
     revalidatePath("/serialized-assets");
     revalidatePath("/maintenance");
     revalidatePath("/dashboard");
     return { id: asset.id };
+}
+
+/**
+ * Generate or regenerate the QR code for a single asset.
+ * Used as a one-click fix for assets that have no QR code (e.g. imported before this feature).
+ */
+export async function generateQRCodeAction(assetId: string): Promise<void> {
+    const { dataUrl, payload } = await generateQRCode(assetId);
+    await prisma.serializedAsset.update({
+        where: { id: assetId },
+        data: { qrCodeUrl: dataUrl, qrCodePayload: payload },
+    });
+    revalidatePath("/serialized-assets");
+}
+
+/**
+ * Backfill QR codes for all existing assets that don't have one yet.
+ * Safe to call multiple times — only processes assets where qrCodeUrl IS NULL.
+ */
+export async function backfillQRCodesAction(): Promise<{ processed: number; errors: number }> {
+    const assets = await prisma.serializedAsset.findMany({
+        where: { qrCodeUrl: null },
+        select: { id: true },
+    });
+
+    let errors = 0;
+    for (const asset of assets) {
+        try {
+            const { dataUrl, payload } = await generateQRCode(asset.id);
+            await prisma.serializedAsset.update({
+                where: { id: asset.id },
+                data: { qrCodeUrl: dataUrl, qrCodePayload: payload },
+            });
+        } catch {
+            errors++;
+        }
+    }
+
+    revalidatePath("/serialized-assets");
+    return { processed: assets.length - errors, errors };
 }
 
 /**

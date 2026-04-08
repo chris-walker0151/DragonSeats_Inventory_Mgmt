@@ -41,7 +41,9 @@ import {
     fetchActiveCustomersAction,
     createAssetAction,
     updateAssetAction,
+    generateQRCodeAction,
 } from "./actions";
+import { QRLabel } from "@/components/shared";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Pencil, Check, ChevronsUpDown } from "lucide-react";
@@ -382,7 +384,7 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
         });
     }
 
-    const showLoading = initialMode !== "create" && (isPending || !detail);
+    const showLoading = sheetMode !== "create" && (isPending || !detail);
     const cat = isEditing ? formData.productCategory : detail?.productCategory;
 
     return (
@@ -394,18 +396,18 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                     <>
                         <SheetHeader>
                             <SheetTitle className="flex items-center gap-2">
-                                {sheetMode === "create" ? (
+                                {sheetMode === "create" || !detail ? (
                                     "New Asset"
                                 ) : (
                                     <>
-                                        <span className="font-mono">{detail!.serialNumber}</span>
+                                        <span className="font-mono">{detail.serialNumber}</span>
                                         <Badge
                                             className={cn(
                                                 "text-[10px]",
-                                                LIFECYCLE_STATUS_COLORS[detail!.lifecycleStatus],
+                                                LIFECYCLE_STATUS_COLORS[detail.lifecycleStatus],
                                             )}
                                         >
-                                            {LIFECYCLE_STATUS_LABELS[detail!.lifecycleStatus]}
+                                            {LIFECYCLE_STATUS_LABELS[detail.lifecycleStatus]}
                                         </Badge>
                                         {sheetMode === "view" && (
                                             <Button variant="ghost" size="icon" className="ml-auto h-7 w-7" onClick={handleEdit}>
@@ -416,9 +418,9 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                                 )}
                             </SheetTitle>
                             <SheetDescription>
-                                {sheetMode === "create"
+                                {sheetMode === "create" || !detail
                                     ? "Fill in the details to create a new serialized asset."
-                                    : `${PRODUCT_CATEGORY_LABELS[detail!.productCategory]}${detail!.productTypeModel ? ` — ${detail!.productTypeModel}` : ""}`}
+                                    : `${PRODUCT_CATEGORY_LABELS[detail.productCategory]}${detail.productTypeModel ? ` — ${detail.productTypeModel}` : ""}`}
                             </SheetDescription>
                         </SheetHeader>
 
@@ -748,6 +750,40 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                                     <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                                         {detail!.notes}
                                     </p>
+                                </Section>
+                            )}
+
+                            {/* QR Code (view mode only) */}
+                            {!isEditing && detail && (
+                                <Section title="QR Code">
+                                    {detail.qrCodeUrl ? (
+                                        <QRLabel
+                                            assetId={detail.id}
+                                            assetName={detail.productTypeModel ?? PRODUCT_CATEGORY_LABELS[detail.productCategory]}
+                                            serialNumber={detail.serialNumber}
+                                            qrCodeUrl={detail.qrCodeUrl}
+                                        />
+                                    ) : (
+                                        <div className="flex items-center gap-3">
+                                            <p className="text-xs text-muted-foreground">No QR code generated yet.</p>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={async () => {
+                                                    try {
+                                                        await generateQRCodeAction(detail.id);
+                                                        toast.success("QR code generated");
+                                                        // Reload detail to show new QR
+                                                        setDetail(await fetchAssetDetail(detail.id));
+                                                    } catch {
+                                                        toast.error("Failed to generate QR code");
+                                                    }
+                                                }}
+                                            >
+                                                Generate QR
+                                            </Button>
+                                        </div>
+                                    )}
                                 </Section>
                             )}
 
