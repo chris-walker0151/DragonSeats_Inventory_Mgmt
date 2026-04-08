@@ -40,7 +40,7 @@ CREATE TABLE "sku_master" (
 );
 
 -- CreateTable
-CREATE TABLE "customers" (
+CREATE TABLE "inventory_customers" (
     "id" TEXT NOT NULL,
     "team_name" TEXT NOT NULL,
     "league" "LeagueType" NOT NULL,
@@ -57,7 +57,7 @@ CREATE TABLE "customers" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "customers_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "inventory_customers_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -149,13 +149,13 @@ CREATE UNIQUE INDEX "sku_master_sku_key" ON "sku_master"("sku");
 ALTER TABLE "serialized_assets" ADD CONSTRAINT "serialized_assets_sku_id_fkey" FOREIGN KEY ("sku_id") REFERENCES "sku_master"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "serialized_assets" ADD CONSTRAINT "serialized_assets_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "customers"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "serialized_assets" ADD CONSTRAINT "serialized_assets_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "inventory_customers"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "deployments" ADD CONSTRAINT "deployments_asset_id_fkey" FOREIGN KEY ("asset_id") REFERENCES "serialized_assets"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "deployments" ADD CONSTRAINT "deployments_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "customers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "deployments" ADD CONSTRAINT "deployments_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "inventory_customers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "transfers" ADD CONSTRAINT "transfers_asset_id_fkey" FOREIGN KEY ("asset_id") REFERENCES "serialized_assets"("id") ON DELETE SET NULL ON UPDATE CASCADE;
