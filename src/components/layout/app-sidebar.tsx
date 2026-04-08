@@ -14,6 +14,7 @@ import {
     BookOpen,
     Wrench,
     ClipboardList,
+    ScrollText,
 } from "lucide-react";
 import {
     Sidebar,
@@ -39,6 +40,7 @@ const iconMap = {
     BookOpen,
     Wrench,
     ClipboardList,
+    ScrollText,
 } as const;
 
 interface NavItem {
@@ -88,6 +90,16 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                 label: "Predictive Maintenance",
                 href: "/maintenance",
                 icon: "Wrench",
+            },
+        ],
+    },
+    {
+        label: "Tools",
+        items: [
+            {
+                label: "Audit Log",
+                href: "/tools/audit-log",
+                icon: "ScrollText",
             },
         ],
     },
