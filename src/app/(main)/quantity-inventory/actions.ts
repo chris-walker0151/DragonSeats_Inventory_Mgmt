@@ -10,6 +10,7 @@ import {
 } from "@/lib/quantity-inventory/queries";
 import type { QuantityItemCreateInput, QuantityItemUpdateInput } from "@/lib/quantity-inventory/queries";
 import { prisma } from "@/lib/db";
+import { logActivity, logBulkActivity, diffFields } from "@/lib/activity-log/queries";
 
 /* ── Valid enum values for import validation ── */
 const VALID_WAREHOUSE_LOCATIONS = new Set(["cleveland_warehouse", "kansas_city_warehouse", "jacksonville_warehouse", "deployed_customer"]);
@@ -26,6 +27,11 @@ export async function fetchQuantityItemAction(id: string): Promise<QuantityInven
  */
 export async function createQuantityItemAction(input: QuantityItemCreateInput): Promise<{ id: string }> {
     const item = await createQuantityItem(input);
+    await logActivity({
+        recordId: item.id,
+        collectionName: "quantity-inventory",
+        summary: `Created inventory item ${input.itemCategory}${input.itemVariant ? ` / ${input.itemVariant}` : ""}`,
+    });
     revalidatePath("/quantity-inventory");
     revalidatePath("/dashboard");
     return { id: item.id };
@@ -35,7 +41,26 @@ export async function createQuantityItemAction(input: QuantityItemCreateInput): 
  * Update an existing quantity inventory item.
  */
 export async function updateQuantityItemAction(id: string, input: QuantityItemUpdateInput) {
+    const before = await prisma.quantityInventory.findUnique({ where: { id } });
     await updateQuantityItem(id, input);
+    if (before) {
+        const changes = diffFields(
+            before as unknown as Record<string, unknown>,
+            input as Record<string, unknown>,
+        );
+        if (changes.length > 0) {
+            await logBulkActivity(
+                changes.map((c) => ({
+                    recordId: id,
+                    collectionName: "quantity-inventory",
+                    summary: `Changed ${c.fieldName} on ${before.itemCategory}`,
+                    fieldChanged: c.fieldName,
+                    oldValue: c.oldValue ?? undefined,
+                    newValue: c.newValue ?? undefined,
+                })),
+            );
+        }
+    }
     revalidatePath("/quantity-inventory");
     revalidatePath("/dashboard");
 }
@@ -108,10 +133,32 @@ export async function importQuantityInventoryAction(
                 },
             });
 
+            const afterRecord = await prisma.quantityInventory.findUnique({
+                where: uniqueKey,
+                select: { id: true },
+            });
+            const label = `${itemCategory}${itemVariant ? ` / ${itemVariant}` : ""}`;
+
             if (before) {
                 updated++;
+                if (afterRecord) {
+                    await logActivity({
+                        recordId: afterRecord.id,
+                        collectionName: "quantity-inventory",
+                        method: "Import",
+                        summary: `Updated ${label} via import`,
+                    });
+                }
             } else {
                 created++;
+                if (afterRecord) {
+                    await logActivity({
+                        recordId: afterRecord.id,
+                        collectionName: "quantity-inventory",
+                        method: "Import",
+                        summary: `Created ${label} via import`,
+                    });
+                }
             }
         } catch (err) {
             errors.push({

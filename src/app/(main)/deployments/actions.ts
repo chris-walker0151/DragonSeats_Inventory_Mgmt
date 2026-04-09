@@ -7,6 +7,7 @@ import type {
     GameType,
     WarehouseLocation,
 } from "@/generated/prisma/client";
+import { logActivity } from "@/lib/activity-log/queries";
 
 // ─── State machine rules ────────────────────────────────────────────────────
 
@@ -81,6 +82,12 @@ export async function reserveAssetAction(input: {
         }),
     ]);
 
+    await logActivity({
+        recordId: input.assetId,
+        collectionName: "serialized-assets",
+        summary: `Reserved asset for deployment (${input.gameType})`,
+    });
+
     revalidateDeploymentPaths();
 }
 
@@ -119,6 +126,12 @@ export async function deployAssetAction(input: {
             },
         }),
     ]);
+
+    await logActivity({
+        recordId: input.assetId,
+        collectionName: "serialized-assets",
+        summary: `Deployed asset (transport: ${input.transportVendor})`,
+    });
 
     revalidateDeploymentPaths();
 }
@@ -160,6 +173,12 @@ export async function returnAssetAction(input: {
         }
     });
 
+    await logActivity({
+        recordId: input.assetId,
+        collectionName: "serialized-assets",
+        summary: `Returned asset to ${input.returnWarehouse} (condition: ${input.condition})`,
+    });
+
     revalidateDeploymentPaths();
 }
 
@@ -179,6 +198,12 @@ export async function serviceAssetAction(input: {
             condition: input.condition,
             maintenanceNotes: input.notes,
         },
+    });
+
+    await logActivity({
+        recordId: input.assetId,
+        collectionName: "serialized-assets",
+        summary: `Sent asset to service (condition: ${input.condition})`,
     });
 
     revalidateDeploymentPaths();
@@ -230,6 +255,12 @@ export async function transferAssetAction(input: {
         });
     });
 
+    await logActivity({
+        recordId: input.assetId,
+        collectionName: "serialized-assets",
+        summary: `Transferred asset to new customer (${input.gameType})`,
+    });
+
     revalidateDeploymentPaths();
 }
 
@@ -250,6 +281,12 @@ export async function refurbishAssetAction(input: {
             lastRefurbishedDate: new Date(input.returnDate),
             deployedLocationName: `Refurbish - ${input.manufacturer}`,
         },
+    });
+
+    await logActivity({
+        recordId: input.assetId,
+        collectionName: "serialized-assets",
+        summary: `Sent asset for refurbishment (${input.manufacturer})`,
     });
 
     revalidateDeploymentPaths();
