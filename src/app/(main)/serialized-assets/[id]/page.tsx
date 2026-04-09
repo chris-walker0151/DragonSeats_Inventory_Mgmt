@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
-import { fetchAssetDetail } from "../actions";
-import { AssetMobilePage } from "./asset-mobile-page";
+import { fetchSerializedAssetDetail } from "@/lib/serialized-assets/queries";
+import { AssetProfileClient } from "./asset-profile-client";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
@@ -8,13 +9,20 @@ interface Props {
     params: Promise<{ id: string }>;
 }
 
-export default async function SerializedAssetPage({ params }: Props) {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { id } = await params;
-    const asset = await fetchAssetDetail(id);
+    const asset = await fetchSerializedAssetDetail(id);
+    if (!asset) return { title: "Asset Not Found" };
+    return { title: `${asset.serialNumber} — Dragon Seats` };
+}
+
+export default async function AssetProfilePage({ params }: Props) {
+    const { id } = await params;
+    const asset = await fetchSerializedAssetDetail(id);
 
     if (!asset) {
         notFound();
     }
 
-    return <AssetMobilePage asset={asset} />;
+    return <AssetProfileClient asset={asset} />;
 }

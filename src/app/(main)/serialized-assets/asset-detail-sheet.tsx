@@ -33,7 +33,7 @@ import {
 } from "@/lib/serialized-assets/constants";
 import { WAREHOUSES } from "@/lib/constants";
 import type { SerializedAssetDetail } from "@/lib/serialized-assets/types";
-import type { ProductCategory, LifecycleStatus, WarehouseLocation, BrandingStatus, AssetAvailability } from "@/generated/prisma/client";
+import { type AssetFormData, EMPTY_FORM, detailToForm, formToPayload } from "@/lib/serialized-assets/asset-form";
 import { AVAILABILITY_LABELS, ALL_AVAILABILITIES } from "@/lib/deployments/constants";
 import {
     fetchAssetDetail,
@@ -45,7 +45,7 @@ import {
 } from "./actions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Pencil, Check, ChevronsUpDown } from "lucide-react";
+import { Pencil, Check, ChevronsUpDown, QrCode } from "lucide-react";
 import {
     Command,
     CommandEmpty,
@@ -59,6 +59,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
+import { QrCodeDialog } from "./qr-code-dialog";
 
 type SheetMode = "view" | "edit" | "create";
 
@@ -68,110 +69,6 @@ interface AssetDetailSheetProps {
     onClose: () => void;
     mode?: "view" | "create";
     onSaved?: () => void;
-}
-
-interface AssetFormData {
-    serialNumber: string;
-    productCategory: ProductCategory;
-    productTypeModel: string;
-    lifecycleStatus: LifecycleStatus;
-    currentLocation: WarehouseLocation;
-    customerId: string;
-    manufacturer: string;
-    yearManufactured: string;
-    notes: string;
-    benchType: string;
-    flangeOrDiffuser: string;
-    wheelType: string;
-    brandingStatus: string;
-    brandingDescription: string;
-    condition: string;
-    benchStatus: string;
-    availability: string;
-    manifoldStyle: string;
-    deckType: string;
-    seatType: string;
-    compressorHoles: string;
-    acHoles: string;
-    dsPlateNumber: string;
-    deployedLocationName: string;
-    teamAllocated2024: string;
-    teamAllocated2025: string;
-    heaterType: string;
-    btuLevel: string;
-    btuRating: string;
-    amps: string;
-    maintenanceNotes: string;
-}
-
-const EMPTY_FORM: AssetFormData = {
-    serialNumber: "",
-    productCategory: "bench",
-    productTypeModel: "",
-    lifecycleStatus: "in_warehouse_available",
-    currentLocation: "cleveland_warehouse",
-    customerId: "",
-    manufacturer: "",
-    yearManufactured: "",
-    notes: "",
-    benchType: "",
-    flangeOrDiffuser: "",
-    wheelType: "",
-    brandingStatus: "",
-    brandingDescription: "",
-    condition: "",
-    benchStatus: "",
-    availability: "available",
-    manifoldStyle: "",
-    deckType: "",
-    seatType: "",
-    compressorHoles: "",
-    acHoles: "",
-    dsPlateNumber: "",
-    deployedLocationName: "",
-    teamAllocated2024: "",
-    teamAllocated2025: "",
-    heaterType: "",
-    btuLevel: "",
-    btuRating: "",
-    amps: "",
-    maintenanceNotes: "",
-};
-
-function detailToForm(detail: SerializedAssetDetail): AssetFormData {
-    return {
-        serialNumber: detail.serialNumber,
-        productCategory: detail.productCategory,
-        productTypeModel: detail.productTypeModel ?? "",
-        lifecycleStatus: detail.lifecycleStatus,
-        currentLocation: detail.currentLocation,
-        customerId: detail.customerId ?? "",
-        manufacturer: detail.manufacturer ?? "",
-        yearManufactured: detail.yearManufactured?.toString() ?? "",
-        notes: detail.notes ?? "",
-        benchType: detail.benchType ?? "",
-        flangeOrDiffuser: detail.flangeOrDiffuser ?? "",
-        wheelType: detail.wheelType ?? "",
-        brandingStatus: detail.brandingStatus ?? "",
-        brandingDescription: detail.brandingDescription ?? "",
-        condition: detail.condition ?? "",
-        benchStatus: detail.benchStatus ?? "",
-        availability: detail.availability ?? "",
-        manifoldStyle: detail.manifoldStyle ?? "",
-        deckType: detail.deckType ?? "",
-        seatType: detail.seatType ?? "",
-        compressorHoles: detail.compressorHoles ?? "",
-        acHoles: detail.acHoles ?? "",
-        dsPlateNumber: detail.dsPlateNumber ?? "",
-        deployedLocationName: detail.deployedLocationName ?? "",
-        teamAllocated2024: detail.teamAllocated2024 ?? "",
-        teamAllocated2025: detail.teamAllocated2025 ?? "",
-        heaterType: detail.heaterType ?? "",
-        btuLevel: detail.btuLevel ?? "",
-        btuRating: detail.btuRating?.toString() ?? "",
-        amps: detail.amps?.toString() ?? "",
-        maintenanceNotes: detail.maintenanceNotes ?? "",
-    };
 }
 
 export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "view", onSaved }: AssetDetailSheetProps) {
@@ -192,6 +89,9 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
     // Return form state
     const [showReturnForm, setShowReturnForm] = useState(false);
     const [returnLocation, setReturnLocation] = useState("");
+
+    // QR code dialog state
+    const [qrOpen, setQrOpen] = useState(false);
 
     const isEditing = sheetMode === "edit" || sheetMode === "create";
 
@@ -271,38 +171,7 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
         }
 
         startTransition(async () => {
-            const payload = {
-                productCategory: formData.productCategory,
-                currentLocation: formData.currentLocation,
-                lifecycleStatus: formData.lifecycleStatus,
-                productTypeModel: formData.productTypeModel || null,
-                customerId: formData.customerId || null,
-                manufacturer: formData.manufacturer || null,
-                yearManufactured: formData.yearManufactured ? Number(formData.yearManufactured) : null,
-                notes: formData.notes || null,
-                benchType: formData.benchType || null,
-                flangeOrDiffuser: formData.flangeOrDiffuser || null,
-                wheelType: formData.wheelType || null,
-                brandingStatus: (formData.brandingStatus || null) as BrandingStatus | null,
-                brandingDescription: formData.brandingDescription || null,
-                condition: formData.condition || null,
-                benchStatus: formData.benchStatus || null,
-                availability: (formData.availability as AssetAvailability) || undefined,
-                manifoldStyle: formData.manifoldStyle || null,
-                deckType: formData.deckType || null,
-                seatType: formData.seatType || null,
-                compressorHoles: formData.compressorHoles || null,
-                acHoles: formData.acHoles || null,
-                dsPlateNumber: formData.dsPlateNumber || null,
-                deployedLocationName: formData.deployedLocationName || null,
-                teamAllocated2024: formData.teamAllocated2024 || null,
-                teamAllocated2025: formData.teamAllocated2025 || null,
-                heaterType: formData.heaterType || null,
-                btuLevel: formData.btuLevel || null,
-                btuRating: formData.btuRating ? Number(formData.btuRating) : null,
-                amps: formData.amps ? Number(formData.amps) : null,
-                maintenanceNotes: formData.maintenanceNotes || null,
-            };
+            const payload = formToPayload(formData);
 
             try {
                 if (sheetMode === "create") {
@@ -387,6 +256,7 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
     const cat = isEditing ? formData.productCategory : detail?.productCategory;
 
     return (
+        <>
         <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
             <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
                 {showLoading ? (
@@ -409,9 +279,14 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                                             {LIFECYCLE_STATUS_LABELS[detail!.lifecycleStatus]}
                                         </Badge>
                                         {sheetMode === "view" && (
-                                            <Button variant="ghost" size="icon" className="ml-auto h-7 w-7" onClick={handleEdit}>
-                                                <Pencil className="h-3.5 w-3.5" />
-                                            </Button>
+                                            <span className="ml-auto flex items-center gap-1">
+                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setQrOpen(true)}>
+                                                    <QrCode className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleEdit}>
+                                                    <Pencil className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </span>
                                         )}
                                     </>
                                 )}
@@ -816,6 +691,15 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
                 )}
             </SheetContent>
         </Sheet>
+        {detail && (
+            <QrCodeDialog
+                open={qrOpen}
+                onOpenChange={setQrOpen}
+                assetId={detail.id}
+                serialNumber={detail.serialNumber}
+            />
+        )}
+        </>
     );
 }
 

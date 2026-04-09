@@ -97,7 +97,7 @@ export async function fetchOverdueReturns(): Promise<OverdueReturn[]> {
 export async function fetchDownedEquipmentAlerts(): Promise<DownedEquipmentAlert[]> {
     const assets = await prisma.serializedAsset.findMany({
         where: {
-            availability: "down",
+            availability: { equals: "Down", mode: "insensitive" },
         },
         select: {
             serialNumber: true,
