@@ -4,9 +4,11 @@ import {
     fetchDashboardLocationSummary,
     fetchDashboardBrandingSummary,
 } from "@/lib/serialized-assets/queries";
+import { fetchAllAlerts } from "@/lib/dashboard/queries";
 import { FleetMatrixCard } from "./fleet-matrix-card";
 import { LocationSummaryCard } from "./location-summary-card";
 import { BrandingSummaryCard } from "./branding-summary-card";
+import { DashboardAlertsCard } from "./dashboard-alerts-card";
 import { DashboardSkeleton } from "./loading";
 
 export const dynamic = "force-dynamic";
@@ -31,17 +33,23 @@ export default function DashboardPage() {
 }
 
 async function DashboardContent() {
-    const [fleetMatrix, locationSummary, brandingSummary] = await Promise.all([
+    const [fleetMatrix, locationSummary, brandingSummary, alerts] = await Promise.all([
         fetchDashboardFleetMatrix(),
         fetchDashboardLocationSummary(),
         fetchDashboardBrandingSummary(),
+        fetchAllAlerts(),
     ]);
 
     return (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            <FleetMatrixCard data={fleetMatrix} className="xl:col-span-2" />
-            <LocationSummaryCard data={locationSummary} />
-            <BrandingSummaryCard data={brandingSummary} />
-        </div>
+        <>
+            {/* Alerts — always shown first */}
+            <DashboardAlertsCard alerts={alerts} />
+
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                <FleetMatrixCard data={fleetMatrix} className="xl:col-span-2" />
+                <LocationSummaryCard data={locationSummary} />
+                <BrandingSummaryCard data={brandingSummary} />
+            </div>
+        </>
     );
 }
