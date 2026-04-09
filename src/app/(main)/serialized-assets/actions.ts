@@ -135,6 +135,7 @@ export async function updateAssetAction(id: string, input: AssetUpdateInput) {
     }
 
     revalidatePath("/serialized-assets");
+    revalidatePath(`/serialized-assets/${id}`);
     revalidatePath("/maintenance");
     revalidatePath("/dashboard");
     revalidatePath("/service-tickets");
