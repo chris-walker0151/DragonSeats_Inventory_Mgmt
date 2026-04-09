@@ -141,6 +141,23 @@ export async function updateAssetAction(id: string, input: AssetUpdateInput) {
 }
 
 /**
+ * Assign a scanned QR code value to a serialized asset.
+ */
+export async function assignQrCodeAction(assetId: string, qrCode: string): Promise<void> {
+    const currentAsset = await prisma.serializedAsset.findUnique({ where: { id: assetId } });
+    await updateSerializedAsset(assetId, { qrCode });
+    await logActivity({
+        recordId: assetId,
+        collectionName: "serialized-assets",
+        summary: `QR code assigned to ${currentAsset?.serialNumber ?? assetId}`,
+        fieldChanged: "qrCode",
+        oldValue: currentAsset?.qrCode ?? undefined,
+        newValue: qrCode,
+    });
+    revalidatePath("/serialized-assets");
+}
+
+/**
  * Batch update multiple assets based on a selected action.
  */
 export type BatchAction = "reserve" | "deploy" | "return" | "service" | "transfer" | "refurbish";

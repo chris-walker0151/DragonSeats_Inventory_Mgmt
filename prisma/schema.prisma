@@ -216,6 +216,9 @@ model SerializedAsset {
     btuRating Int? @map("btu_rating")
     amps      Int? @map("amps")
 
+    // QR code assignment
+    qrCode              String?   @map("qr_code")
+
     // Maintenance fields
     lastRefurbishedDate DateTime? @map("last_refurbished_date") @db.Date
     maintenanceNotes    String?   @map("maintenance_notes")

@@ -41,10 +41,12 @@ import {
     fetchActiveCustomersAction,
     createAssetAction,
     updateAssetAction,
+    assignQrCodeAction,
 } from "./actions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Pencil, Check, ChevronsUpDown } from "lucide-react";
+import { Pencil, Check, ChevronsUpDown, QrCode, ScanLine } from "lucide-react";
+import { QrScannerDialog } from "@/components/shared";
 import {
     Command,
     CommandEmpty,
@@ -180,6 +182,9 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
     const [formData, setFormData] = useState<AssetFormData>(EMPTY_FORM);
     const [customers, setCustomers] = useState<{ id: string; teamName: string }[]>([]);
 
+    // QR scanner state
+    const [showQrScanner, setShowQrScanner] = useState(false);
+
     // Deploy form state
     const [showDeployForm, setShowDeployForm] = useState(false);
     const [deployCustomerId, setDeployCustomerId] = useState("");
@@ -199,6 +204,7 @@ export function AssetDetailSheet({ assetId, open, onClose, mode: initialMode = "
     if (prevOpen !== open) {
         setPrevOpen(open);
         if (!open) {
+            setShowQrScanner(false);
             setShowDeployForm(false);
             setDeployCustomerId("");
             setDeployDate(new Date().toISOString().slice(0, 10));

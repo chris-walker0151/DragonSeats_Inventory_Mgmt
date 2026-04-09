@@ -45,6 +45,7 @@ export interface AssetCreateInput {
     btuRating?: number | null;
     amps?: number | null;
     maintenanceNotes?: string | null;
+    qrCode?: string | null;
 }
 
 export type AssetUpdateInput = Partial<Omit<AssetCreateInput, "serialNumber">>;
@@ -145,6 +146,7 @@ export async function fetchSerializedAssetDetail(
         btuLevel: asset.btuLevel,
         btuRating: asset.btuRating,
         amps: asset.amps,
+        qrCode: asset.qrCode,
         lastRefurbishedDate: asset.lastRefurbishedDate,
         maintenanceNotes: asset.maintenanceNotes,
         createdAt: asset.createdAt,

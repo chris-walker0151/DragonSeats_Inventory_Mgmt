@@ -75,6 +75,7 @@ export interface SerializedAssetDetail {
     btuLevel: string | null;
     btuRating: number | null;
     amps: number | null;
+    qrCode: string | null;
     lastRefurbishedDate: Date | null;
     maintenanceNotes: string | null;
     createdAt: Date;
