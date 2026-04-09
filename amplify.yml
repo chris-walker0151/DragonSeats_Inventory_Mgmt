@@ -5,6 +5,7 @@ frontend:
       commands:
         - npm ci
         - npx prisma generate
+        - npx prisma migrate deploy
         - '[ -n "$DATABASE_URL" ] && echo "✓ DATABASE_URL is set" || echo "✗ DATABASE_URL is NOT set"'
     build:
       commands:
