@@ -20,6 +20,21 @@ export interface CustomerCreateInput {
     stadiumAddress?: string | null;
     contractStartDate?: Date | null;
     contractEndDate?: Date | null;
+    // Team info fields
+    roadContactName?: string | null;
+    loadingDock?: string | null;
+    fieldType?: string | null;
+    sidelineSetupNotes?: string | null;
+    sidelineSetupDiagram?: string | null;
+    homeBenches?: number | null;
+    homeShaders?: string | null;
+    homeCooling?: string | null;
+    homeHeat?: string | null;
+    roadBenches?: number | null;
+    roadShaders?: string | null;
+    roadCooling?: string | null;
+    roadHeat?: string | null;
+    notes?: string | null;
 }
 
 export type CustomerUpdateInput = Partial<Omit<CustomerCreateInput, "teamName">>;
@@ -94,6 +109,20 @@ export async function fetchCustomerDetail(
         contractStartDate: customer.contractStartDate,
         contractEndDate: customer.contractEndDate,
         activeStatus: customer.activeStatus,
+        roadContactName: customer.roadContactName,
+        loadingDock: customer.loadingDock,
+        fieldType: customer.fieldType,
+        sidelineSetupNotes: customer.sidelineSetupNotes,
+        sidelineSetupDiagram: customer.sidelineSetupDiagram,
+        homeBenches: customer.homeBenches,
+        homeShaders: customer.homeShaders,
+        homeCooling: customer.homeCooling,
+        homeHeat: customer.homeHeat,
+        roadBenches: customer.roadBenches,
+        roadShaders: customer.roadShaders,
+        roadCooling: customer.roadCooling,
+        roadHeat: customer.roadHeat,
+        notes: customer.notes,
         createdAt: customer.createdAt,
         updatedAt: customer.updatedAt,
         deployedAssets: customer.serializedAssets.map((a) => ({

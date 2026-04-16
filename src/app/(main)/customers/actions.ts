@@ -6,10 +6,12 @@ import type { CustomerCreateInput, CustomerUpdateInput } from "@/lib/customers/q
 import type { CustomerDetail } from "@/lib/customers/types";
 import type { ImportResult } from "@/lib/import/types";
 import { prisma } from "@/lib/db";
-import { logActivity, diffFields, logBulkActivity } from "@/lib/activity-log/queries";
+import { logActivity, diffFields, logBulkActivity, fetchActivityForRecord } from "@/lib/activity-log/queries";
+import type { ActivityLogListItem } from "@/lib/activity-log/types";
+import { CUSTOMER_FIELD_LABELS } from "@/lib/customers/constants";
 
 /* ── Valid enum values for import validation ── */
-const VALID_LEAGUES = new Set(["nfl", "ncaa_fbs", "ncaa_fcs", "other"]);
+const VALID_LEAGUES = new Set(["nfl", "ncaa_fbs", "ncaa_fcs", "big_10", "sec", "acc", "big_12", "other"]);
 const VALID_CONTRACT_TYPES = new Set(["seasonal_rental", "multi_year_lease"]);
 const VALID_CUSTOMER_STATUSES = new Set(["active", "inactive", "prospect"]);
 
@@ -21,6 +23,15 @@ export async function fetchCustomerDetailAction(
     id: string,
 ): Promise<CustomerDetail | null> {
     return fetchCustomerDetail(id);
+}
+
+/**
+ * Fetch activity log entries for a customer.
+ */
+export async function fetchCustomerActivityAction(
+    customerId: string,
+): Promise<ActivityLogListItem[]> {
+    return fetchActivityForRecord(customerId, "customers");
 }
 
 /**
@@ -48,6 +59,7 @@ export async function updateCustomerAction(id: string, input: CustomerUpdateInpu
         const changes = diffFields(
             before as unknown as Record<string, unknown>,
             input as Record<string, unknown>,
+            CUSTOMER_FIELD_LABELS,
         );
         if (changes.length > 0) {
             await logBulkActivity(

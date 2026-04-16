@@ -2,7 +2,7 @@ export const VALID_WAREHOUSE_LOCATIONS = new Set([
     "cleveland_warehouse", "kansas_city_warehouse", "jacksonville_warehouse", "deployed_customer",
 ]);
 
-export const VALID_LEAGUE_TYPES = new Set(["nfl", "ncaa_fbs", "ncaa_fcs", "other"]);
+export const VALID_LEAGUE_TYPES = new Set(["nfl", "ncaa_fbs", "ncaa_fcs", "big_10", "sec", "acc", "big_12", "other"]);
 
 export const VALID_CONTRACT_TYPES = new Set(["seasonal_rental", "multi_year_lease"]);
 
