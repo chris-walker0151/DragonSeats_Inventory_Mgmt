@@ -39,6 +39,10 @@ enum LeagueType {
     nfl
     ncaa_fbs
     ncaa_fcs
+    big_10
+    sec
+    acc
+    big_12
     other
 }
 
@@ -157,6 +161,22 @@ model Customer {
     obligationType        ObligationType? @map("obligation_type")
     brandingRequired      Boolean        @default(false) @map("branding_required")
     activeStatus          CustomerStatus @default(active) @map("active_status")
+
+    // Team info fields (from DS - Team Info spreadsheet)
+    roadContactName        String?  @map("road_contact_name")
+    loadingDock            String?  @map("loading_dock")
+    fieldType              String?  @map("field_type")
+    sidelineSetupNotes     String?  @map("sideline_setup_notes")
+    sidelineSetupDiagram   String?  @map("sideline_setup_diagram")
+    homeBenches            Int?     @map("home_benches")
+    homeShaders            String?  @map("home_shaders")
+    homeCooling            String?  @map("home_cooling")
+    homeHeat               String?  @map("home_heat")
+    roadBenches            Int?     @map("road_benches")
+    roadShaders            String?  @map("road_shaders")
+    roadCooling            String?  @map("road_cooling")
+    roadHeat               String?  @map("road_heat")
+    notes                  String?
 
     createdAt DateTime @default(now()) @map("created_at")
     updatedAt DateTime @updatedAt @map("updated_at")

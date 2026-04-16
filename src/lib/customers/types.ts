@@ -41,6 +41,22 @@ export interface CustomerDetail {
     contractStartDate: Date | null;
     contractEndDate: Date | null;
     activeStatus: CustomerStatus;
+    // Team info fields
+    roadContactName: string | null;
+    loadingDock: string | null;
+    fieldType: string | null;
+    sidelineSetupNotes: string | null;
+    sidelineSetupDiagram: string | null;
+    homeBenches: number | null;
+    homeShaders: string | null;
+    homeCooling: string | null;
+    homeHeat: string | null;
+    roadBenches: number | null;
+    roadShaders: string | null;
+    roadCooling: string | null;
+    roadHeat: string | null;
+    notes: string | null;
+    // Metadata
     createdAt: Date;
     updatedAt: Date;
     deployedAssets: {
